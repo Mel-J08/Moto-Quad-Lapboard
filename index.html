@@ -15,17 +15,57 @@
 <div class="footer">Prototype Moto/Quad Lapboard • calculs locaux • utilisable sans connexion</div></div>
 <script>
 let S={running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],pilot:'',number:'',timer:null};
-const $=id=>document.getElementById(id);function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active')}
+const $=id=>document.getElementById(id);
+function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active')}
 function fmt(sec){if(sec==null||!isFinite(sec))return '—';sec=Math.max(0,Math.round(sec));let m=Math.floor(sec/60),s=sec%60;return `${m}:${String(s).padStart(2,'0')}`}
 function clock(ms){return new Date(ms).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
-function nowStart(){let t=$('start').value;if(t){let [h,m]=t.split(':').map(Number),d=new Date();d.setHours(h,m,0,0);if(d.getTime()<Date.now()-12*3600e3)d.setDate(d.getDate()+1);return d.getTime()}return Date.now()}
+function plannedStart(){let t=$('start').value;if(!t)return Date.now();let [h,m]=t.split(':').map(Number),d=new Date();d.setHours(h,m,0,0);if(d.getTime()<Date.now()-12*3600e3)d.setDate(d.getDate()+1);return d.getTime()}
 function laps(){return S.passages.slice(1).map((p,i)=>({n:i+1,t:(p-S.passages[i])/1000,at:p}))}
 function prediction(){let ls=laps();if(!ls.length)return null;let recent=ls.slice(-5);let weights=recent.map((_,i)=>i+1),sum=weights.reduce((a,b)=>a+b,0);let avg=recent.reduce((a,x,i)=>a+x.t*weights[i],0)/sum;let spread=Math.sqrt(recent.reduce((a,x)=>a+Math.pow(x.t-avg,2),0)/recent.length);return {avg,spread}}
-function pitAlert(next){let elapsed=(next-S.startMs)/60000;let hit=S.pits.find(p=>!p.done && elapsed>=p.min-5 && elapsed<=p.min+5);if(hit)return hit;return null}
-function render(){let now=Date.now(), elapsed=(now-S.startMs)/1000;if(S.running&&!S.paused&&elapsed>=S.duration){S.running=false;finish();return} $('raceClock').textContent=fmt(Math.max(0,elapsed));let ps=prediction();if(ps){let n=now+ps.avg*1000;$('nextClock').textContent=clock(n);$('nextDelta').textContent=`≈ dans ${fmt(ps.avg)} • fenêtre ± ${Math.max(2,Math.round(ps.spread))} s`;let pit=pitAlert(n);if(pit){$('alert').className='notice';$('alert').textContent=`🚨 PANNEAUTE : STAND • arrêt prévu vers ${fmtClockFromStart(pit.min)}`; $('alert').classList.remove('hidden')}else{$('alert').classList.add('hidden')}}else{$('nextClock').textContent='--:--:--';$('nextDelta').textContent='En attente de passages…'}let ls=laps();$('lap').textContent=ls.length;$('lastLap').textContent=ls.length?fmt(ls.at(-1).t):'—';if(ls.length){let avg=ls.reduce((a,x)=>a+x.t,0)/ls.length,best=Math.min(...ls.map(x=>x.t)),sd=Math.sqrt(ls.reduce((a,x)=>a+Math.pow(x.t-avg,2),0)/ls.length);$('avg').textContent=fmt(avg);$('best').textContent=fmt(best);$('var').textContent='±'+Math.round(sd)+'s'}$('laps').innerHTML=ls.slice().reverse().map(x=>`<div class="laprow"><span>Tour ${x.n}</span><b>${fmt(x.t)}</b><span class="sub">${clock(x.at)}</span></div>`).join('')||'<div class="sub">Aucun tour enregistré.</div>'}
 function fmtClockFromStart(min){return clock(S.startMs+min*60000)}
-function start(){S={...S,running:true,paused:false,startMs:nowStart(),duration:(+$('duration').value||120)*60,passages:[],pits:[...[$('pit1').value,$('pit2').value].map((v,i)=>({min:+v,done:false,window:5})).filter(x=>x.min>0)],pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value};$('pilot').textContent=S.pilot+(S.number?' • N°'+S.number:'');show('race');clearInterval(S.timer);S.timer=setInterval(render,500);render()}
-$('manualMode').onclick=()=>{$('liveInfo').classList.add('hidden');$('manualMode').className='primary';$('liveMode').className='';$('demoMode').className=''};$('liveMode').onclick=()=>{$('liveInfo').classList.remove('hidden');$('manualMode').className='';$('liveMode').className='primary';$('demoMode').className=''};$('demoMode').onclick=()=>{$('manualMode').className='';$('liveMode').className='';$('demoMode').className='primary';$('liveInfo').classList.add('hidden');$('first').value='Julien';$('last').value='Quad';$('duration').value=20;$('pit1').value=5;$('pit2').value=12}
-$('startBtn').onclick=start;$('passBtn').onclick=()=>{if(!S.running||S.paused)return;let t=Date.now();S.passages.push(t);let elapsed=(t-S.startMs)/60000;S.pits.forEach(p=>{if(!p.done&&elapsed>=p.min-5&&elapsed<=p.min+5)p.done=true});render()};$('pauseBtn').onclick=()=>{S.paused=!S.paused;$('pauseBtn').textContent=S.paused?'REPRENDRE':'PAUSE'};$('resetBtn').onclick=()=>{clearInterval(S.timer);show('setup')};$('finishBtn').onclick=()=>{S.running=false;finish()};$('againBtn').onclick=()=>show('setup');
+function nextPit(){return S.pits.find(p=>!p.done)||null}
+function setAlert(text,kind='notice'){if(!text){$('alert').classList.add('hidden');return}$('alert').className=kind;$('alert').textContent=text;$('alert').classList.remove('hidden')}
+function pitMessage(now,ps){
+  let p=nextPit();if(!p)return null;
+  let elapsed=(now-S.startMs)/60000;
+  let remaining=p.min-elapsed;
+  // Before the stop: give a simple countdown even without any recorded passage.
+  if(remaining>0 && remaining<=5)return {text:`🟠 STAND DANS ~${Math.ceil(remaining)} MIN`,kind:'notice'};
+  // If the target is reached, signal STAND. If we have a prediction, also give the next predicted passage.
+  if(remaining<=0){
+    if(ps){let nextElapsed=elapsed+ps.avg/60;let close=Math.abs(nextElapsed-p.min)<=Math.max(5,ps.avg/60*1.5);if(close)return {text:`🚨 PANNEAUTE : STAND • prochain passage ${clock(now+ps.avg*1000)}`,kind:'notice'};}
+    return {text:`🚨 PANNEAUTE : STAND • prévu à ${fmtClockFromStart(p.min)}`,kind:'notice'};
+  }
+  // If the predicted next passage falls inside the 5-minute approach window, warn with that passage time.
+  if(ps){let nextElapsed=elapsed+ps.avg/60;if(nextElapsed>=p.min-5 && nextElapsed<=p.min+5)return {text:`🟠 STAND AU PROCHAIN PASSAGE • vers ${clock(now+ps.avg*1000)}`,kind:'notice'};}
+  return null;
+}
+function resetStatsUI(){ $('lap').textContent='0';$('lastLap').textContent='—';$('avg').textContent='—';$('best').textContent='—';$('var').textContent='—';$('nextClock').textContent='--:--:--';$('nextDelta').textContent='En attente de passages…';$('laps').innerHTML='<div class="sub">Aucun tour enregistré.</div>';setAlert(null) }
+function render(){
+  let now=Date.now(), elapsed=(now-S.startMs)/1000;
+  if(S.running&&!S.paused&&elapsed>=S.duration){S.running=false;finish();return}
+  $('raceClock').textContent=fmt(Math.max(0,elapsed));
+  let ps=prediction();
+  if(ps){let n=now+ps.avg*1000;$('nextClock').textContent=clock(n);$('nextDelta').textContent=`≈ dans ${fmt(ps.avg)} • fenêtre ± ${Math.max(2,Math.round(ps.spread))} s`}
+  else{$('nextClock').textContent='--:--:--';$('nextDelta').textContent='En attente de passages…'}
+  let pit=pitMessage(now,ps);setAlert(pit?pit.text:null,pit?pit.kind:'notice');
+  let ls=laps();$('lap').textContent=ls.length;$('lastLap').textContent=ls.length?fmt(ls.at(-1).t):'—';
+  if(ls.length){let avg=ls.reduce((a,x)=>a+x.t,0)/ls.length,best=Math.min(...ls.map(x=>x.t)),sd=Math.sqrt(ls.reduce((a,x)=>a+Math.pow(x.t-avg,2),0)/ls.length);$('avg').textContent=fmt(avg);$('best').textContent=fmt(best);$('var').textContent='±'+Math.round(sd)+'s'}
+  $('laps').innerHTML=ls.slice().reverse().map(x=>`<div class="laprow"><span>Tour ${x.n}</span><b>${fmt(x.t)}</b><span class="sub">${clock(x.at)}</span></div>`).join('')||'<div class="sub">Aucun tour enregistré.</div>'
+}
+function start(){
+  let manual=$('manualMode').classList.contains('primary');
+  S={...S,running:true,paused:false,startMs:manual?Date.now():plannedStart(),duration:(+$('duration').value||120)*60,passages:[],pits:[...[$('pit1').value,$('pit2').value].map(v=>({min:+v,done:false})).filter(x=>x.min>0).sort((a,b)=>a.min-b.min),pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value};
+  $('pilot').textContent=S.pilot+(S.number?' • N°'+S.number:'');resetStatsUI();show('race');clearInterval(S.timer);S.timer=setInterval(render,500);render()
+}
+$('manualMode').onclick=()=>{$('liveInfo').classList.add('hidden');$('manualMode').className='primary';$('liveMode').className='';$('demoMode').className=''};
+$('liveMode').onclick=()=>{$('liveInfo').classList.remove('hidden');$('manualMode').className='';$('liveMode').className='primary';$('demoMode').className=''};
+$('demoMode').onclick=()=>{$('manualMode').className='';$('liveMode').className='';$('demoMode').className='primary';$('liveInfo').classList.add('hidden');$('first').value='Julien';$('last').value='Quad';$('duration').value=20;$('pit1').value=5;$('pit2').value=12};
+$('startBtn').onclick=start;
+$('passBtn').onclick=()=>{if(!S.running||S.paused)return;let t=Date.now();S.passages.push(t);let elapsed=(t-S.startMs)/60000;S.pits.forEach(p=>{if(!p.done&&elapsed>=p.min-5&&elapsed<=p.min+5)p.done=true});render()};
+$('pauseBtn').onclick=()=>{S.paused=!S.paused;$('pauseBtn').textContent=S.paused?'REPRENDRE':'PAUSE';render()};
+$('resetBtn').onclick=()=>{clearInterval(S.timer);S={running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],pilot:'',number:'',timer:null};resetStatsUI();show('setup')};
+$('finishBtn').onclick=()=>{S.running=false;finish()};$('againBtn').onclick=()=>{show('setup')};
 function finish(){clearInterval(S.timer);let ls=laps();$('finishPilot').textContent=S.pilot||'Pilote';$('fLaps').textContent=ls.length;$('fBest').textContent=ls.length?fmt(Math.min(...ls.map(x=>x.t))):'—';$('fAvg').textContent=ls.length?fmt(ls.reduce((a,x)=>a+x.t,0)/ls.length):'—';$('finishText').innerHTML=ls.length?`<b>${ls.length} tour(s) enregistré(s).</b><p class="sub">La dernière prédiction et les alertes stand sont basées sur les passages réellement enregistrés. En mode CFS officiel, ces éléments pourront être remplacés/précisés par le flux de chronométrage.</p>`:'Aucun passage enregistré.';show('finish')}
+resetStatsUI();
 </script></body></html>
