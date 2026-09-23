@@ -52,6 +52,8 @@ function render(){
   let ls=laps();$('lap').textContent=ls.length;$('lastLap').textContent=ls.length?fmt(ls.at(-1).t):'—';
   if(ls.length){let avg=ls.reduce((a,x)=>a+x.t,0)/ls.length,best=Math.min(...ls.map(x=>x.t)),sd=Math.sqrt(ls.reduce((a,x)=>a+Math.pow(x.t-avg,2),0)/ls.length);$('avg').textContent=fmt(avg);$('best').textContent=fmt(best);$('var').textContent='±'+Math.round(sd)+'s'}
   $('laps').innerHTML=ls.slice().reverse().map(x=>`<div class="laprow"><span>Tour ${x.n}</span><b>${fmt(x.t)}</b><span class="sub">${clock(x.at)}</span></div>`).join('')||'<div class="sub">Aucun tour enregistré.</div>'
+  // Once the passage has been registered, the stop is considered executed.
+  S.pits.forEach(p=>{if(p.hit){p.done=true;p.hit=false}})
 }
 function start(){
   let manual=$('manualMode').classList.contains('primary');
@@ -63,7 +65,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('liveMode').onclick=()=>{$('liveInfo').classList.remove('hidden');$('manualMode').className='';$('liveMode').className='primary';$('demoMode').className=''};
   $('demoMode').onclick=()=>{$('manualMode').className='';$('liveMode').className='';$('demoMode').className='primary';$('liveInfo').classList.add('hidden');$('first').value='Julien';$('last').value='Quad';$('duration').value=20;$('pit1').value=5;$('pit2').value=12};
   $('startBtn').addEventListener('click',start);
-  $('passBtn').addEventListener('click',()=>{if(!S.running||S.paused)return;let t=Date.now();S.passages.push(t);let elapsed=(t-S.startMs)/60000;S.pits.forEach(p=>{if(!p.done&&elapsed>=p.min-5&&elapsed<=p.min+5)p.done=true});render()});
+  $('passBtn').addEventListener('click',()=>{if(!S.running||S.paused)return;let t=Date.now();S.passages.push(t);let elapsed=(t-S.startMs)/60000;S.pits.forEach(p=>{if(!p.done&&elapsed>=p.min-5&&elapsed<=p.min+5){p.hit=true}});render()});
   $('pauseBtn').addEventListener('click',()=>{S.paused=!S.paused;$('pauseBtn').textContent=S.paused?'REPRENDRE':'PAUSE';render()});
   $('resetBtn').addEventListener('click',()=>{clearInterval(S.timer);S={running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],pilot:'',number:'',timer:null};resetStatsUI();show('setup')});
   $('finishBtn').addEventListener('click',()=>{S.running=false;finish()});
