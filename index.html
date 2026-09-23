@@ -25,7 +25,28 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 .icon{display:inline-flex;align-items:center;justify-content:center;margin-right:7px;font-size:1.05em;line-height:1;filter:saturate(1.1)}
 .metric span{display:block}
 .next:before{content:"⏱️";margin-right:7px}
-.notice:not(.hidden){position:relative}.notice:not(.hidden)::first-letter{filter:saturate(1.4)}</style>
+.notice:not(.hidden){position:relative}.notice:not(.hidden)::first-letter{filter:saturate(1.4)}
+/* V15 — visuel validé : moto 43 à gauche / quad 93 à droite */
+.racebg{position:relative;overflow:hidden}
+.racebg:before,.racebg:after{content:"";position:absolute;top:0;bottom:0;width:50%;z-index:-1;pointer-events:none}
+.racebg:before{left:0;background:linear-gradient(90deg,rgba(15,105,210,.20),transparent)}
+.racebg:after{right:0;background:linear-gradient(270deg,rgba(255,122,0,.22),transparent)}
+.vehicle-strip{display:flex;justify-content:space-between;align-items:center;padding:0 6px 7px;font-weight:950;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.vehicle-strip .moto{color:#8fc7ff;text-shadow:0 1px 8px rgba(0,80,180,.5)}
+.vehicle-strip .quad{color:#ffbd63;text-shadow:0 1px 8px rgba(255,100,0,.5)}
+.hero2{background:rgba(16,18,23,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.hero2 .status{font-size:17px;margin-bottom:4px}.hero2 .big{font-size:32px;line-height:1.05}.hero2 .next{font-size:44px;margin:10px 0 4px}.hero2 .next:before{font-size:.65em}
+.stand2{margin-top:12px;padding:11px 12px;border-radius:15px;background:rgba(52,34,17,.88);color:#ffd89c;font-weight:900;font-size:15px}
+.metrics2 .metric{padding:11px 6px;background:rgba(16,18,23,.86);border:1px solid rgba(255,255,255,.04)}
+.metrics2 .metric b{font-size:23px}.metrics2 .metric span{font-size:10px;letter-spacing:.03em}
+.pass2{height:112px;margin-top:12px;border-radius:20px;background:linear-gradient(135deg,#ffae1a,#ff5d00);font-size:36px;box-shadow:0 9px 28px rgba(255,105,0,.28)}
+.pass2 small{font-size:12px;color:#f4f4f4;font-weight:700}
+.remaining2{background:rgba(17,19,25,.90);border:1px solid rgba(255,255,255,.14);text-align:center;padding:15px 12px}.remaining2 .sub{font-size:15px}.remaining2 .remain{font-size:55px;font-weight:950;line-height:1.05;margin-top:5px;color:#fff}
+.remaining2 .remain.danger{color:#ff6868}
+.stats2 .metric{background:rgba(16,18,23,.90);border:1px solid rgba(255,255,255,.05)}
+.stats2 .metric b{font-size:20px}
+@media(max-width:380px){.hero2 .big{font-size:28px}.hero2 .next{font-size:38px}.pass2{font-size:32px}}
+</style>
 
 <link rel="apple-touch-icon" sizes="180x180" href="moto-quad-lapboard-icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -58,34 +79,35 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 <button id="startBtn" class="primary" style="width:100%;font-size:21px">DÉMARRER LA COURSE</button>
 </section>
 
-<section id="race" class="screen">
-<div class="card hero">
+<section id="race" class="screen racebg">
+<div class="vehicle-strip"><span class="moto">🏍️ MOTO N°43</span><span class="quad">QUAD N°93 🏁</span></div>
+<div class="card hero hero2">
 <div id="raceStatus" class="status green">🟢 COURSE EN COURS</div>
 <div id="pilot" class="big">—</div>
 <div id="raceClock" class="sub">00:00:00</div>
 <div class="next">PROCHAIN PASSAGE<br><span id="nextClock">--:--:--</span></div>
 <div id="nextDelta" class="sub">En attente du premier passage…</div>
-<div id="alert" class="notice hidden" style="margin-top:14px"></div>
+<div id="alert" class="stand2 hidden"></div>
 </div>
 
-<div class="grid3">
+<div class="grid3 metrics2">
 <div class="metric"><b id="passCount">0</b><span><span class="icon">🏁</span>PASSAGES</span></div>
 <div class="metric"><b id="lap">0</b><span><span class="icon">🏴</span>TOURS COMPLETS</span></div>
 <div class="metric"><b id="lastLap">—</b><span><span class="icon">⏱️</span>DERNIER TOUR</span></div>
 </div>
 
-<button id="passBtn" class="pass">PASSAGE<small>appuyer au moment où le pilote passe</small></button>
+<button id="passBtn" class="pass pass2">🏁 PASSAGE<small>appuyer au moment où le pilote passe</small></button>
 
-<div class="card" style="text-align:center;padding:18px 16px">
-<div class="sub" style="font-weight:800;letter-spacing:.08em"><span class="icon">⌛</span>TEMPS RESTANT DE LA COURSE</div>
-<div id="raceRemaining" style="font-size:52px;font-weight:900;line-height:1.05;margin-top:6px">—</div>
+<div class="card remaining2">
+<div class="sub" style="font-weight:900;letter-spacing:.08em"><span class="icon">⌛</span>TEMPS RESTANT DE LA COURSE</div>
+<div id="raceRemaining" class="remain danger">—</div>
 <div class="sub small">temps restant à annoncer au pilote</div>
 </div>
 
-<div class="card"><div class="grid3">
+<div class="card stats2"><div class="grid3">
 <div class="metric"><b id="avg">—</b><span><span class="icon">📊</span>MOYENNE</span></div>
 <div class="metric"><b id="best">—</b><span><span class="icon">🏆</span>MEILLEUR</span></div>
-<div class="metric"><b id="var">—</b><span><span class="icon">↕️</span>VARIATION</span></div>
+<div class="metric"><b id="var">—</b><span><span class="icon">±</span>±5s FENÊTRE</span></div>
 </div></div>
 
 <div class="toolbar">
@@ -233,7 +255,7 @@ function render(){
    let sd=Math.sqrt(ls.reduce((a,x)=>a+Math.pow(x.t-avg,2),0)/ls.length);
    $('avg').textContent=fmt(avg);
    $('best').textContent=fmt(best);
-   $('var').textContent='±'+Math.round(sd)+'s';
+   $('var').textContent='±'+Math.max(5,Math.round(ps?ps.spread:5))+'s';
  }
  $('laps').innerHTML=ls.slice().reverse().map(x=>
    `<div class="laprow"><span>Tour ${x.n}</span><b>${fmt(x.t)}</b><span class="sub">${clock(x.at)}</span></div>`
