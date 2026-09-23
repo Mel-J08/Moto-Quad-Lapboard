@@ -67,6 +67,12 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 <div class="metric"><b id="lastLap">—</b><span>DERNIER TOUR</span></div>
 </div>
 
+<div class="card" style="text-align:center;padding:18px 16px">
+<div class="sub" style="font-weight:800;letter-spacing:.08em">TEMPS RESTANT DE LA COURSE</div>
+<div id="raceRemaining" style="font-size:52px;font-weight:900;line-height:1.05;margin-top:6px">—</div>
+<div class="sub small">temps restant à annoncer au pilote</div>
+</div>
+
 <button id="passBtn" class="pass">PASSAGE<small>appuyer au moment où le quad passe</small></button>
 
 <div class="card"><div class="grid3">
@@ -184,6 +190,7 @@ function resetStatsUI(){
  $('avg').textContent='—';$('best').textContent='—';$('var').textContent='—';
  $('nextClock').textContent='--:--:--';
  $('nextDelta').textContent='En attente du premier passage…';
+ $('raceRemaining').textContent='—';
  $('laps').innerHTML='<div class="sub">Aucun tour enregistré.</div>';
  setAlert(null);
 }
@@ -192,6 +199,8 @@ function render(){
  let now=Date.now(),elapsed=(now-S.startMs)/1000;
  if(S.running&&!S.paused&&elapsed>=S.duration){finish();return}
  $('raceClock').textContent=fmt(Math.max(0,elapsed));
+ let remainingCourse=Math.max(0,S.duration-elapsed);
+ $('raceRemaining').textContent=fmt(remainingCourse);
  let ps=prediction();
 
  if(ps && S.nextPassageMs){
