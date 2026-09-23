@@ -42,7 +42,7 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 .pass2{height:112px;margin-top:12px;border-radius:20px;background:linear-gradient(135deg,#ffae1a,#ff5d00);font-size:36px;box-shadow:0 9px 28px rgba(255,105,0,.28)}
 .pass2 small{font-size:12px;color:#f4f4f4;font-weight:700}
 .remaining2{background:rgba(17,19,25,.90);border:1px solid rgba(255,255,255,.14);text-align:center;padding:15px 12px}.remaining2 .sub{font-size:15px}.remaining2 .remain{font-size:55px;font-weight:950;line-height:1.05;margin-top:5px;color:#fff}
-.remaining2 .remain.danger{color:#fff;font-size:62px;font-weight:950;text-shadow:0 2px 10px rgba(0,0,0,.45)}
+.remaining2 .remain.danger{color:#ffffff !important;opacity:1 !important;-webkit-text-fill-color:#ffffff !important;font-size:64px;font-weight:950;text-shadow:0 2px 8px rgba(0,0,0,.75)}
 .stats2 .metric{background:rgba(16,18,23,.90);border:1px solid rgba(255,255,255,.05)}
 .stats2 .metric b{font-size:20px}
 @media(max-width:380px){.hero2 .big{font-size:28px}.hero2 .next{font-size:38px}.pass2{font-size:32px}}
@@ -58,10 +58,10 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 <section id="setup" class="screen active">
 <div class="card"><h2>Nouvelle course</h2>
 <div class="grid">
-<div class="field"><label>Prénom</label><input id="first" placeholder="Julien"></div>
-<div class="field"><label>Nom</label><input id="last" placeholder="Dupont"></div>
-<div class="field"><label>N° de course</label><input id="number" inputmode="numeric" placeholder="93"></div>
-<div class="field"><label>Durée (min)</label><input id="duration" type="number" value="120"></div>
+<div class="field"><label>Prénom</label><input id="first" placeholder="Prénom"></div>
+<div class="field"><label>Nom</label><input id="last" placeholder="Nom"></div>
+<div class="field"><label>N° de course</label><input id="number" inputmode="numeric" value="0" placeholder="0"></div>
+<div class="field"><label>Durée (min)</label><input id="duration" type="number" value="0" placeholder="0" min="1"></div>
 </div>
 <div class="grid" style="margin-top:10px">
 <div class="field"><label>Heure de départ</label><input id="start" type="time"></div>
@@ -70,8 +70,8 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 
 <div class="card"><h2>Ravitaillements / stand</h2>
 <div class="grid">
-<div class="field"><label>Stop 1 après (min)</label><input id="pit1" type="number" placeholder="70"></div>
-<div class="field"><label>Stop 2 après (min)</label><input id="pit2" type="number" placeholder="105"></div>
+<div class="field"><label>Stop 1 après (min)</label><input id="pit1" type="number" value="0" placeholder="0" min="0"></div>
+<div class="field"><label>Stop 2 après (min)</label><input id="pit2" type="number" value="0" placeholder="0" min="0"></div>
 </div>
 <p class="sub small">L'appli affiche automatiquement le signal STAND au bon moment selon le rythme réel.</p>
 </div>
@@ -80,7 +80,7 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 </section>
 
 <section id="race" class="screen racebg">
-<div class="vehicle-strip"><span class="moto">🏍️ MOTO N°43</span><span class="quad">QUAD N°93 🏁</span></div>
+
 <div class="card hero hero2">
 <div id="raceStatus" class="status green">🟢 COURSE EN COURS</div>
 <div id="pilot" class="big">—</div>
