@@ -1,96 +1,318 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101114"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Moto/Quad Lapboard"><title>Moto/Quad Lapboard</title><style>
-:root{--bg:#0b0c0f;--card:#15171c;--muted:#9ba1ad;--text:#f5f7fa;--green:#19d27c;--orange:#ff9f1c;--red:#ff4d4d;--blue:#4da3ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif}button,input,select{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;font-weight:800;color:white;background:#242831}button:active{transform:scale(.98)}.wrap{max-width:700px;margin:auto;padding:18px 14px 36px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.brand{font-size:24px;font-weight:900}.pill{padding:7px 10px;border-radius:999px;background:#20232a;color:var(--muted);font-size:12px;font-weight:800}.screen{display:none}.screen.active{display:block}.card{background:var(--card);border:1px solid #252933;border-radius:20px;padding:16px;margin:12px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.field label{display:block;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:6px}.field input,.field select{width:100%;background:#0f1115;border:1px solid #2b2f38;color:white;border-radius:12px;padding:12px}.primary{background:var(--green);color:#04150d}.orange{background:var(--orange);color:#1c1202}.danger{background:var(--red)}.big{font-size:30px;font-weight:950;letter-spacing:-1px}.next{font-size:54px;line-height:1;font-weight:950;margin:6px 0}.sub{color:var(--muted)}.hero{text-align:center;padding:22px 12px}.status{font-size:15px;font-weight:900;letter-spacing:.08em}.status.green{color:var(--green)}.status.orange{color:var(--orange)}.status.red{color:var(--red)}.pass{width:100%;height:110px;font-size:34px;background:#26303b;margin-top:14px}.pass small{display:block;font-size:12px;color:#b7bfcc;margin-top:5px}.metric{background:#101217;border-radius:14px;padding:12px;text-align:center}.metric b{display:block;font-size:21px}.metric span{color:var(--muted);font-size:11px}.laprow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #242731}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0}.tabs button{padding:11px 6px;font-size:12px}.hidden{display:none}.notice{padding:13px;border-radius:14px;background:#252018;color:#ffd99b;font-weight:800}.success{background:#11271e;color:#9ff0c7}.error{background:#301819;color:#ffb1b1}.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{flex:1;min-width:120px}.small{font-size:12px}.center{text-align:center}.checkbox{display:flex;gap:8px;align-items:center;color:#ddd}.checkbox input{width:20px;height:20px}.footer{color:#686f7c;text-align:center;font-size:11px;margin-top:24px}
-</style></head><body><div class="wrap"><div class="top"><div class="brand">🏁 Moto/Quad Lapboard</div><div id="modePill" class="pill">HORS-LIGNE</div></div>
-<section id="setup" class="screen active"><div class="card"><h2>Nouvelle course</h2><div class="grid"><div class="field"><label>Prénom</label><input id="first" placeholder="Julien"></div><div class="field"><label>Nom</label><input id="last" placeholder="Dupont"></div><div class="field"><label>N° de course</label><input id="number" inputmode="numeric" placeholder="12"></div><div class="field"><label>Durée (min)</label><input id="duration" type="number" value="120"></div></div><div class="grid" style="margin-top:10px"><div class="field"><label>Heure de départ</label><input id="start" type="time"></div><div class="field"><label>Circuit</label><input id="circuit" placeholder="Berck / entraînement…"></div></div></div>
-<div class="card"><h2>Ravitaillements / stand</h2><div class="grid"><div class="field"><label>Stop 1 après (min)</label><input id="pit1" type="number" placeholder="70"></div><div class="field"><label>Stop 2 après (min)</label><input id="pit2" type="number" placeholder="105"></div></div><p class="sub small">L’appli choisira automatiquement le prochain passage où afficher « STAND », selon l’heure prévue et le rythme réel. Aucun bouton STAND nécessaire.</p></div>
-<div class="card"><h2>Mode</h2><div class="tabs"><button id="manualMode" class="primary">MANUEL / TRAINING</button><button id="liveMode">CFS LIVE</button><button id="demoMode">DÉMO</button></div><div id="liveInfo" class="notice hidden">Le site CFS Live existe bien et annonce des temps intermédiaires par tour, mais le flux technique exploitable automatiquement n’est pas exposé dans la page publique que nous pouvons inspecter. Le prototype garde donc une architecture prête pour le connecteur Live, sans inventer de données.</div></div>
-<button id="startBtn" class="primary" style="width:100%;font-size:21px">DÉMARRER LA COURSE</button></section>
-<section id="race" class="screen"><div class="card hero"><div id="raceStatus" class="status green">🟢 COURSE EN COURS</div><div id="pilot" class="big">—</div><div id="raceClock" class="sub">00:00:00</div><div class="next">PROCHAIN PASSAGE<br><span id="nextClock">--:--:--</span></div><div id="nextDelta" class="sub">En attente de passages…</div><div id="alert" class="notice hidden" style="margin-top:14px"></div></div>
-<div class="grid3"><div class="metric"><b id="pos">—</b><span>POSITION</span></div><div class="metric"><b id="lap">0</b><span>TOURS</span></div><div class="metric"><b id="lastLap">—</b><span>DERNIER TOUR</span></div></div>
-<button id="passBtn" class="pass">PASSAGE<small>appuyer au moment où le quad passe</small></button>
-<div class="card"><div class="grid3"><div class="metric"><b id="avg">—</b><span>MOYENNE</span></div><div class="metric"><b id="best">—</b><span>MEILLEUR</span></div><div class="metric"><b id="var">—</b><span>VARIATION</span></div></div></div>
-<div class="toolbar"><button id="pauseBtn">PAUSE</button><button id="resetBtn">ANNULER</button><button id="finishBtn" class="danger">FIN COURSE</button></div>
-<div class="card"><h3>Historique des tours</h3><div id="laps"></div></div></section>
-<section id="finish" class="screen"><div class="card hero"><div class="status red">🔴 COURSE TERMINÉE</div><div id="finishPilot" class="big">—</div><p class="sub">Résumé de la session</p></div><div class="grid3"><div class="metric"><b id="fLaps">0</b><span>TOURS</span></div><div class="metric"><b id="fBest">—</b><span>MEILLEUR</span></div><div class="metric"><b id="fAvg">—</b><span>MOYENNE</span></div></div><div class="card" id="finishText"></div><button id="againBtn" class="primary" style="width:100%">NOUVELLE COURSE</button></section>
-<div class="footer">Prototype Moto/Quad Lapboard • calculs locaux • utilisable sans connexion</div></div>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101114">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Moto/Quad Lapboard">
+<title>Moto/Quad Lapboard</title>
+<style>
+:root{--bg:#0b0c0f;--card:#15171c;--muted:#9ba1ad;--text:#f5f7fa;--green:#19d27c;--orange:#ff9f1c;--red:#ff4d4d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif}
+button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;font-weight:800;color:white;background:#242831}button:active{transform:scale(.98)}
+.wrap{max-width:700px;margin:auto;padding:18px 14px 36px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.brand{font-size:24px;font-weight:900}
+.pill{padding:7px 10px;border-radius:999px;background:#20232a;color:var(--muted);font-size:12px;font-weight:800}.screen{display:none}.screen.active{display:block}
+.card{background:var(--card);border:1px solid #252933;border-radius:20px;padding:16px;margin:12px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.field label{display:block;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:6px}.field input{width:100%;background:#0f1115;border:1px solid #2b2f38;color:white;border-radius:12px;padding:12px}
+.primary{background:var(--green);color:#04150d}.danger{background:var(--red)}.big{font-size:30px;font-weight:950}.sub{color:var(--muted)}.next{font-size:48px;line-height:1.05;font-weight:950;margin:8px 0}
+.hero{text-align:center;padding:22px 12px}.status{font-size:15px;font-weight:900;letter-spacing:.08em}.green{color:var(--green)}.red{color:var(--red)}.orange{color:var(--orange)}
+.pass{width:100%;height:110px;font-size:34px;background:#26303b;margin-top:14px}.pass small{display:block;font-size:12px;color:#b7bfcc;margin-top:5px}.pass.success{background:#11271e;color:#9ff0c7}
+.metric{background:#101217;border-radius:14px;padding:12px;text-align:center}.metric b{display:block;font-size:21px}.metric span{color:var(--muted);font-size:11px}
+.laprow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #242731}.hidden{display:none}.notice{padding:13px;border-radius:14px;background:#252018;color:#ffd99b;font-weight:800}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{flex:1;min-width:120px}.small{font-size:12px}.footer{color:#686f7c;text-align:center;font-size:11px;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top"><div class="brand">ð Moto/Quad Lapboard</div><div class="pill">HORS-LIGNE</div></div>
+
+<section id="setup" class="screen active">
+<div class="card"><h2>Nouvelle course</h2>
+<div class="grid">
+<div class="field"><label>PrÃ©nom</label><input id="first" placeholder="Julien"></div>
+<div class="field"><label>Nom</label><input id="last" placeholder="Dupont"></div>
+<div class="field"><label>NÂ° de course</label><input id="number" inputmode="numeric" placeholder="93"></div>
+<div class="field"><label>DurÃ©e (min)</label><input id="duration" type="number" value="120"></div>
+</div>
+<div class="grid" style="margin-top:10px">
+<div class="field"><label>Heure de dÃ©part</label><input id="start" type="time"></div>
+<div class="field"><label>Circuit</label><input id="circuit" placeholder="Berck / entraÃ®nementâ¦"></div>
+</div></div>
+
+<div class="card"><h2>Ravitaillements / stand</h2>
+<div class="grid">
+<div class="field"><label>Stop 1 aprÃ¨s (min)</label><input id="pit1" type="number" placeholder="70"></div>
+<div class="field"><label>Stop 2 aprÃ¨s (min)</label><input id="pit2" type="number" placeholder="105"></div>
+</div>
+<p class="sub small">L'appli affiche automatiquement le signal STAND au bon moment selon le rythme rÃ©el.</p>
+</div>
+
+<button id="startBtn" class="primary" style="width:100%;font-size:21px">DÃMARRER LA COURSE</button>
+</section>
+
+<section id="race" class="screen">
+<div class="card hero">
+<div id="raceStatus" class="status green">ð¢ COURSE EN COURS</div>
+<div id="pilot" class="big">â</div>
+<div id="raceClock" class="sub">00:00:00</div>
+<div class="next">PROCHAIN PASSAGE<br><span id="nextClock">--:--:--</span></div>
+<div id="nextDelta" class="sub">En attente du premier passageâ¦</div>
+<div id="alert" class="notice hidden" style="margin-top:14px"></div>
+</div>
+
+<div class="grid3">
+<div class="metric"><b id="passCount">0</b><span>PASSAGES</span></div>
+<div class="metric"><b id="lap">0</b><span>TOURS COMPLETS</span></div>
+<div class="metric"><b id="lastLap">â</b><span>DERNIER TOUR</span></div>
+</div>
+
+<button id="passBtn" class="pass">PASSAGE<small>appuyer au moment oÃ¹ le quad passe</small></button>
+
+<div class="card"><div class="grid3">
+<div class="metric"><b id="avg">â</b><span>MOYENNE</span></div>
+<div class="metric"><b id="best">â</b><span>MEILLEUR</span></div>
+<div class="metric"><b id="var">â</b><span>VARIATION</span></div>
+</div></div>
+
+<div class="toolbar">
+<button id="pauseBtn">PAUSE</button>
+<button id="resetBtn">ANNULER</button>
+<button id="finishBtn" class="danger">FIN COURSE</button>
+</div>
+
+<div class="card"><h3>Historique des tours</h3><div id="laps"></div></div>
+</section>
+
+<section id="finish" class="screen">
+<div class="card hero">
+<div class="status red">ð´ COURSE TERMINÃE</div>
+<div id="finishPilot" class="big">â</div>
+<p class="sub">RÃ©sumÃ© de la session</p>
+</div>
+<div class="grid3">
+<div class="metric"><b id="fPasses">0</b><span>PASSAGES</span></div>
+<div class="metric"><b id="fLaps">0</b><span>TOURS</span></div>
+<div class="metric"><b id="fBest">â</b><span>MEILLEUR</span></div>
+</div>
+<div class="card"><div class="metric"><b id="fAvg">â</b><span>MOYENNE DES TOURS</span></div><p id="finishText" class="sub"></p></div>
+<button id="againBtn" class="primary" style="width:100%">NOUVELLE COURSE</button>
+</section>
+
+<div class="footer">Prototype Moto/Quad Lapboard â¢ calculs locaux â¢ utilisable sans connexion</div>
+</div>
+
 <script>
-let S={running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],pilot:'',number:'',timer:null,passFlash:null};
+let S={
+ running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],
+ pilot:'',number:'',timer:null,passFlash:null,passMessage:'',passMessageUntil:0
+};
 const $=id=>document.getElementById(id);
-function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active')}
-function fmt(sec){if(sec==null||!isFinite(sec))return '—';sec=Math.max(0,Math.round(sec));let m=Math.floor(sec/60),s=sec%60;return `${m}:${String(s).padStart(2,'0')}`}
-function clock(ms){return new Date(ms).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
-function plannedStart(){let t=$('start').value;if(!t)return Date.now();let [h,m]=t.split(':').map(Number),d=new Date();d.setHours(h,m,0,0);if(d.getTime()<Date.now()-12*3600e3)d.setDate(d.getDate()+1);return d.getTime()}
-function laps(){return S.passages.slice(1).map((p,i)=>({n:i+1,t:(p-S.passages[i])/1000,at:p}))}
-function prediction(){let ls=laps();if(!ls.length)return null;let recent=ls.slice(-5);let weights=recent.map((_,i)=>i+1),sum=weights.reduce((a,b)=>a+b,0);let avg=recent.reduce((a,x,i)=>a+x.t*weights[i],0)/sum;let spread=Math.sqrt(recent.reduce((a,x)=>a+Math.pow(x.t-avg,2),0)/recent.length);return {avg,spread}}
+
+function show(id){
+ document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+ $(id).classList.add('active');
+}
+function fmt(sec){
+ if(sec==null||!isFinite(sec))return 'â';
+ sec=Math.max(0,Math.round(sec));
+ let m=Math.floor(sec/60),s=sec%60;
+ return `${m}:${String(s).padStart(2,'0')}`;
+}
+function clock(ms){
+ return new Date(ms).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function plannedStart(){
+ let t=$('start').value;
+ if(!t)return Date.now();
+ let [h,m]=t.split(':').map(Number),d=new Date();
+ d.setHours(h,m,0,0);
+ if(d.getTime()<Date.now()-12*3600e3)d.setDate(d.getDate()+1);
+ return d.getTime();
+}
+
+/* Le premier appui est le premier passage.
+   Les intervalles suivants deviennent Tour 1, Tour 2, etc. */
+function laps(){
+ return S.passages.slice(1).map((p,i)=>({
+   n:i+1,t:(p-S.passages[i])/1000,at:p
+ }));
+}
+function prediction(){
+ let ls=laps();
+ if(!ls.length)return null;
+ let recent=ls.slice(-5);
+ let weights=recent.map((_,i)=>i+1);
+ let sum=weights.reduce((a,b)=>a+b,0);
+ let avg=recent.reduce((a,x,i)=>a+x.t*weights[i],0)/sum;
+ let spread=Math.sqrt(recent.reduce((a,x)=>a+Math.pow(x.t-avg,2),0)/recent.length);
+ return {avg,spread};
+}
 function fmtClockFromStart(min){return clock(S.startMs+min*60000)}
 function nextPit(){return S.pits.find(p=>!p.done)||null}
-function setAlert(text,kind='notice'){if(!text){$('alert').classList.add('hidden');return}$('alert').className=kind;$('alert').textContent=text;$('alert').classList.remove('hidden')}
+function setAlert(text){
+ if(!text){$('alert').classList.add('hidden');return}
+ $('alert').className='notice';
+ $('alert').textContent=text;
+ $('alert').classList.remove('hidden');
+}
 function pitMessage(now,ps){
-  let p=nextPit();if(!p)return null;
-  let elapsed=(now-S.startMs)/60000;
-  let remaining=p.min-elapsed;
-  // The stand message must NEVER disappear just because a PASSAGE was recorded.
-  // Before the chosen signalling lap, keep a simple countdown visible.
-  if(remaining>0){
-    if(ps){
-      let nextElapsed=elapsed+ps.avg/60;
-      // The signal is shown when the next predicted passage is the last useful
-      // board passage before the planned stop (roughly one lap before it).
-      if(nextElapsed>=p.min-0.75 && nextElapsed<=p.min+2.5){
-        p.armed=true;
-        return {text:`🚨 PANNEAUTE : STAND • prochain passage ${clock(now+ps.avg*1000)}`,kind:'notice'};
-      }
-    }
-    let mins=Math.max(1,Math.ceil(remaining));
-    return {text:`🟠 STAND DANS ~${mins} MIN`,kind:'notice'};
-  }
-  // Once the planned time is reached, keep the stand instruction visible
-  // until the pilot has passed the signalling passage.
-  p.armed=true;
-  return {text:`🚨 PANNEAUTE : STAND • prévu à ${fmtClockFromStart(p.min)}`,kind:'notice'};
+ let p=nextPit();if(!p)return null;
+ let elapsed=(now-S.startMs)/60000;
+ let remaining=p.min-elapsed;
+ if(remaining>0){
+   if(ps){
+     let nextElapsed=elapsed+ps.avg/60;
+     if(nextElapsed>=p.min-0.75&&nextElapsed<=p.min+2.5){
+       p.armed=true;
+       return `ð¨ PANNEAUTE : STAND â¢ prochain passage ${clock(now+ps.avg*1000)}`;
+     }
+   }
+   return `ð  STAND DANS ~${Math.max(1,Math.ceil(remaining))} MIN`;
+ }
+ p.armed=true;
+ return `ð¨ PANNEAUTE : STAND â¢ prÃ©vu Ã  ${fmtClockFromStart(p.min)}`;
 }
-function resetStatsUI(){ $('lap').textContent='0';$('lastLap').textContent='—';$('avg').textContent='—';$('best').textContent='—';$('var').textContent='—';$('nextClock').textContent='--:--:--';$('nextDelta').textContent='En attente de passages…';$('laps').innerHTML='<div class="sub">Aucun tour enregistré.</div>';setAlert(null) }
+function resetStatsUI(){
+ $('passCount').textContent='0';$('lap').textContent='0';$('lastLap').textContent='â';
+ $('avg').textContent='â';$('best').textContent='â';$('var').textContent='â';
+ $('nextClock').textContent='--:--:--';
+ $('nextDelta').textContent='En attente du premier passageâ¦';
+ $('laps').innerHTML='<div class="sub">Aucun tour enregistrÃ©.</div>';
+ setAlert(null);
+}
 function render(){
-  let now=Date.now(), elapsed=(now-S.startMs)/1000;
-  if(S.running&&!S.paused&&elapsed>=S.duration){S.running=false;finish();return}
-  $('raceClock').textContent=fmt(Math.max(0,elapsed));
-  let ps=prediction();
-  if(ps){let n=now+ps.avg*1000;$('nextClock').textContent=clock(n);$('nextDelta').textContent=`≈ dans ${fmt(ps.avg)} • fenêtre ± ${Math.max(2,Math.round(ps.spread))} s`}
-  else{$('nextClock').textContent='--:--:--';$('nextDelta').textContent='En attente de passages…'}
-  let pit=pitMessage(now,ps);setAlert(pit?pit.text:null,pit?pit.kind:'notice');
-  let ls=laps();$('lap').textContent=ls.length;$('lastLap').textContent=ls.length?fmt(ls.at(-1).t):'—';
-  if(ls.length){let avg=ls.reduce((a,x)=>a+x.t,0)/ls.length,best=Math.min(...ls.map(x=>x.t)),sd=Math.sqrt(ls.reduce((a,x)=>a+Math.pow(x.t-avg,2),0)/ls.length);$('avg').textContent=fmt(avg);$('best').textContent=fmt(best);$('var').textContent='±'+Math.round(sd)+'s'}
-  $('laps').innerHTML=ls.slice().reverse().map(x=>`<div class="laprow"><span>Tour ${x.n}</span><b>${fmt(x.t)}</b><span class="sub">${clock(x.at)}</span></div>`).join('')||'<div class="sub">Aucun tour enregistré.</div>'
-  // Once the passage has been registered, the stop is considered executed.
-  }
-function start(){
-  let manual=$('manualMode').classList.contains('primary');
-  S={...S,running:true,paused:false,startMs:manual?Date.now():plannedStart(),duration:(+$('duration').value||120)*60,passages:[],pits:[$('pit1').value,$('pit2').value].map(v=>({min:+v,done:false,armed:false})).filter(x=>x.min>0).sort((a,b)=>a.min-b.min),pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value};
-  $('pilot').textContent=S.pilot+(S.number?' • N°'+S.number:'');resetStatsUI();show('race');clearInterval(S.timer);S.timer=setInterval(render,500);render()
+ if(!$('race').classList.contains('active'))return;
+ let now=Date.now(),elapsed=(now-S.startMs)/1000;
+ if(S.running&&!S.paused&&elapsed>=S.duration){finish();return}
+ $('raceClock').textContent=fmt(Math.max(0,elapsed));
+ let ps=prediction();
+
+ if(ps){
+   let n=now+ps.avg*1000;
+   $('nextClock').textContent=clock(n);
+   let normal=`â dans ${fmt(ps.avg)} â¢ fenÃªtre Â± ${Math.max(2,Math.round(ps.spread))} s`;
+   $('nextDelta').textContent=(S.passMessage&&now<S.passMessageUntil)?S.passMessage:normal;
+ }else{
+   $('nextClock').textContent='--:--:--';
+   $('nextDelta').textContent=(S.passMessage&&now<S.passMessageUntil)?S.passMessage:'En attente du premier passageâ¦';
+ }
+
+ setAlert(pitMessage(now,ps));
+
+ let ls=laps();
+ $('passCount').textContent=S.passages.length;
+ $('lap').textContent=ls.length;
+ $('lastLap').textContent=ls.length?fmt(ls.at(-1).t):'â';
+
+ if(ls.length){
+   let avg=ls.reduce((a,x)=>a+x.t,0)/ls.length;
+   let best=Math.min(...ls.map(x=>x.t));
+   let sd=Math.sqrt(ls.reduce((a,x)=>a+Math.pow(x.t-avg,2),0)/ls.length);
+   $('avg').textContent=fmt(avg);
+   $('best').textContent=fmt(best);
+   $('var').textContent='Â±'+Math.round(sd)+'s';
+ }
+ $('laps').innerHTML=ls.slice().reverse().map(x=>
+   `<div class="laprow"><span>Tour ${x.n}</span><b>${fmt(x.t)}</b><span class="sub">${clock(x.at)}</span></div>`
+ ).join('')||'<div class="sub">Aucun tour enregistrÃ©.</div>';
 }
+
+function finish(){
+ clearInterval(S.timer);
+ S.timer=null;
+ S.running=false;
+ S.paused=false;
+ let ls=laps();
+ let totalElapsed=Math.max(0,(Date.now()-S.startMs)/1000);
+ $('finishPilot').textContent=S.pilot+(S.number?' â¢ NÂ°'+S.number:'');
+ $('fPasses').textContent=S.passages.length;
+ $('fLaps').textContent=ls.length;
+ $('fBest').textContent=ls.length?fmt(Math.min(...ls.map(x=>x.t))):'â';
+ $('fAvg').textContent=ls.length?fmt(ls.reduce((a,x)=>a+x.t,0)/ls.length):'â';
+ $('finishText').innerHTML=
+   `<b>Course terminÃ©e.</b><br><span class="sub">Temps Ã©coulÃ© : ${fmt(totalElapsed)}</span>`;
+ show('finish');
+}
+
+function start(){
+ S={
+   ...S,running:true,paused:false,startMs:Date.now(),
+   duration:(+$('duration').value||120)*60,
+   passages:[],
+   pits:[$('pit1').value,$('pit2').value]
+     .map(v=>({min:+v,done:false,armed:false}))
+     .filter(x=>x.min>0)
+     .sort((a,b)=>a.min-b.min),
+   pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),
+   number:$('number').value,
+   passMessage:'',passMessageUntil:0
+ };
+ $('pilot').textContent=S.pilot+(S.number?' â¢ NÂ°'+S.number:'');
+ resetStatsUI();
+ show('race');
+ clearInterval(S.timer);
+ S.timer=setInterval(render,500);
+ render();
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
-  $('manualMode').onclick=()=>{$('liveInfo').classList.add('hidden');$('manualMode').className='primary';$('liveMode').className='';$('demoMode').className=''};
-  $('liveMode').onclick=()=>{$('liveInfo').classList.remove('hidden');$('manualMode').className='';$('liveMode').className='primary';$('demoMode').className=''};
-  $('demoMode').onclick=()=>{$('manualMode').className='';$('liveMode').className='';$('demoMode').className='primary';$('liveInfo').classList.add('hidden');$('first').value='Julien';$('last').value='Quad';$('duration').value=20;$('pit1').value=5;$('pit2').value=12};
-  $('startBtn').addEventListener('click',start);
-  $('passBtn').addEventListener('click',()=>{
-    if(!S.running||S.paused)return;
-    let t=Date.now();
-    S.passages.push(t);
-    // A stand is completed only when the pilot actually passes after the
-    // stand signal has been armed. Never clear the stand warning prematurely.
-    let armedPit=S.pits.find(p=>!p.done&&p.armed);
-    if(armedPit){armedPit.done=true;armedPit.armed=false;}
-    $('nextDelta').textContent='✅ PASSAGE ENREGISTRÉ';
-    $('passBtn').classList.add('success');
-    clearTimeout(S.passFlash);
-    S.passFlash=setTimeout(()=>{$('passBtn').classList.remove('success');render()},1200);
-    render();
-  });
-  $('pauseBtn').addEventListener('click',()=>{S.paused=!S.paused;$('pauseBtn').textContent=S.paused?'REPRENDRE':'PAUSE';render()});
-  $('resetBtn').addEventListener('click',()=>{clearInterval(S.timer);S={running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],pilot:'',number:'',timer:null,passFlash:null};resetStatsUI();show('setup')});
-  $('finishBtn').addEventListener('click',()=>{S.running=false;finish()});
-  $('againBtn').addEventListener('click',()=>{show('setup')});
-  resetStatsUI();
+ $('startBtn').addEventListener('click',start);
+
+ $('passBtn').addEventListener('click',()=>{
+   if(!S.running||S.paused)return;
+
+   let t=Date.now();
+   S.passages.push(t);
+
+   let armedPit=S.pits.find(p=>!p.done&&p.armed);
+   if(armedPit){armedPit.done=true;armedPit.armed=false;}
+
+   let count=S.passages.length;
+
+   if(count===1){
+     S.passMessage='â PREMIER PASSAGE ENREGISTRÃ';
+   }else{
+     let ls=laps(),current=ls[ls.length-1];
+     S.passMessage=`â TOUR ${current.n} ENREGISTRÃ â ${fmt(current.t)}`;
+   }
+
+   S.passMessageUntil=Date.now()+1800;
+   $('passBtn').classList.add('success');
+
+   clearTimeout(S.passFlash);
+   S.passFlash=setTimeout(()=>{
+     $('passBtn').classList.remove('success');
+     S.passMessage='';
+     S.passMessageUntil=0;
+     render();
+   },1800);
+
+   render();
+ });
+
+ $('pauseBtn').addEventListener('click',()=>{
+   S.paused=!S.paused;
+   $('pauseBtn').textContent=S.paused?'REPRENDRE':'PAUSE';
+   render();
+ });
+
+ $('resetBtn').addEventListener('click',()=>{
+   clearInterval(S.timer);
+   S={
+     running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],
+     pilot:'',number:'',timer:null,passFlash:null,passMessage:'',passMessageUntil:0
+   };
+   resetStatsUI();
+   show('setup');
+ });
+
+ $('finishBtn').addEventListener('click',finish);
+
+ $('againBtn').addEventListener('click',()=>{
+   show('setup');
+ });
 });
-</script></body></html>
+</script>
+</body>
+</html>
