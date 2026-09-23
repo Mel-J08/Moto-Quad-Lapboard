@@ -55,7 +55,7 @@ function render(){
 }
 function start(){
   let manual=$('manualMode').classList.contains('primary');
-  S={...S,running:true,paused:false,startMs:manual?Date.now():plannedStart(),duration:(+$('duration').value||120)*60,passages:[],pits:[...[$('pit1').value,$('pit2').value].map(v=>({min:+v,done:false})).filter(x=>x.min>0).sort((a,b)=>a.min-b.min),pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value};
+  S={...S,running:true,paused:false,startMs:manual?Date.now():plannedStart(),duration:(+$('duration').value||120)*60,passages:[],pits:[$('pit1').value,$('pit2').value].map(v=>({min:+v,done:false})).filter(x=>x.min>0).sort((a,b)=>a.min-b.min),pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value};
   $('pilot').textContent=S.pilot+(S.number?' • N°'+S.number:'');resetStatsUI();show('race');clearInterval(S.timer);S.timer=setInterval(render,500);render()
 }
 document.addEventListener('DOMContentLoaded',()=>{
