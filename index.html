@@ -58,14 +58,16 @@ function start(){
   S={...S,running:true,paused:false,startMs:manual?Date.now():plannedStart(),duration:(+$('duration').value||120)*60,passages:[],pits:[...[$('pit1').value,$('pit2').value].map(v=>({min:+v,done:false})).filter(x=>x.min>0).sort((a,b)=>a.min-b.min),pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value};
   $('pilot').textContent=S.pilot+(S.number?' • N°'+S.number:'');resetStatsUI();show('race');clearInterval(S.timer);S.timer=setInterval(render,500);render()
 }
-$('manualMode').onclick=()=>{$('liveInfo').classList.add('hidden');$('manualMode').className='primary';$('liveMode').className='';$('demoMode').className=''};
-$('liveMode').onclick=()=>{$('liveInfo').classList.remove('hidden');$('manualMode').className='';$('liveMode').className='primary';$('demoMode').className=''};
-$('demoMode').onclick=()=>{$('manualMode').className='';$('liveMode').className='';$('demoMode').className='primary';$('liveInfo').classList.add('hidden');$('first').value='Julien';$('last').value='Quad';$('duration').value=20;$('pit1').value=5;$('pit2').value=12};
-$('startBtn').onclick=start;
-$('passBtn').onclick=()=>{if(!S.running||S.paused)return;let t=Date.now();S.passages.push(t);let elapsed=(t-S.startMs)/60000;S.pits.forEach(p=>{if(!p.done&&elapsed>=p.min-5&&elapsed<=p.min+5)p.done=true});render()};
-$('pauseBtn').onclick=()=>{S.paused=!S.paused;$('pauseBtn').textContent=S.paused?'REPRENDRE':'PAUSE';render()};
-$('resetBtn').onclick=()=>{clearInterval(S.timer);S={running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],pilot:'',number:'',timer:null};resetStatsUI();show('setup')};
-$('finishBtn').onclick=()=>{S.running=false;finish()};$('againBtn').onclick=()=>{show('setup')};
-function finish(){clearInterval(S.timer);let ls=laps();$('finishPilot').textContent=S.pilot||'Pilote';$('fLaps').textContent=ls.length;$('fBest').textContent=ls.length?fmt(Math.min(...ls.map(x=>x.t))):'—';$('fAvg').textContent=ls.length?fmt(ls.reduce((a,x)=>a+x.t,0)/ls.length):'—';$('finishText').innerHTML=ls.length?`<b>${ls.length} tour(s) enregistré(s).</b><p class="sub">La dernière prédiction et les alertes stand sont basées sur les passages réellement enregistrés. En mode CFS officiel, ces éléments pourront être remplacés/précisés par le flux de chronométrage.</p>`:'Aucun passage enregistré.';show('finish')}
-resetStatsUI();
+document.addEventListener('DOMContentLoaded',()=>{
+  $('manualMode').onclick=()=>{$('liveInfo').classList.add('hidden');$('manualMode').className='primary';$('liveMode').className='';$('demoMode').className=''};
+  $('liveMode').onclick=()=>{$('liveInfo').classList.remove('hidden');$('manualMode').className='';$('liveMode').className='primary';$('demoMode').className=''};
+  $('demoMode').onclick=()=>{$('manualMode').className='';$('liveMode').className='';$('demoMode').className='primary';$('liveInfo').classList.add('hidden');$('first').value='Julien';$('last').value='Quad';$('duration').value=20;$('pit1').value=5;$('pit2').value=12};
+  $('startBtn').addEventListener('click',start);
+  $('passBtn').addEventListener('click',()=>{if(!S.running||S.paused)return;let t=Date.now();S.passages.push(t);let elapsed=(t-S.startMs)/60000;S.pits.forEach(p=>{if(!p.done&&elapsed>=p.min-5&&elapsed<=p.min+5)p.done=true});render()});
+  $('pauseBtn').addEventListener('click',()=>{S.paused=!S.paused;$('pauseBtn').textContent=S.paused?'REPRENDRE':'PAUSE';render()});
+  $('resetBtn').addEventListener('click',()=>{clearInterval(S.timer);S={running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],pilot:'',number:'',timer:null};resetStatsUI();show('setup')});
+  $('finishBtn').addEventListener('click',()=>{S.running=false;finish()});
+  $('againBtn').addEventListener('click',()=>{show('setup')});
+  resetStatsUI();
+});
 </script></body></html>
