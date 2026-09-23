@@ -105,7 +105,7 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 <script>
 let S={
  running:false,paused:false,startMs:0,duration:7200,passages:[],pits:[],
- pilot:'',number:'',timer:null,passFlash:null,passMessage:'',passMessageUntil:0
+ pilot:'',number:'',timer:null,passFlash:null,passMessage:'',passMessageUntil:0,nextPassageMs:null
 };
 const $=id=>document.getElementById(id);
 
@@ -138,6 +138,8 @@ function laps(){
    n:i+1,t:(p-S.passages[i])/1000,at:p
  }));
 }
+// L'heure du prochain passage est figée au moment du dernier PASSAGE.
+// Elle n'est recalculée qu'au passage suivant.
 function prediction(){
  let ls=laps();
  if(!ls.length)return null;
@@ -188,10 +190,10 @@ function render(){
  $('raceClock').textContent=fmt(Math.max(0,elapsed));
  let ps=prediction();
 
- if(ps){
-   let n=now+ps.avg*1000;
-   $('nextClock').textContent=clock(n);
-   let normal=`≈ dans ${fmt(ps.avg)} • fenêtre ± ${Math.max(2,Math.round(ps.spread))} s`;
+ if(ps && S.nextPassageMs){
+   $('nextClock').textContent=clock(S.nextPassageMs);
+   let remaining=Math.max(0,(S.nextPassageMs-now)/1000);
+   let normal=`≈ dans ${fmt(remaining)} • fenêtre ± ${Math.max(2,Math.round(ps.spread))} s`;
    $('nextDelta').textContent=(S.passMessage&&now<S.passMessageUntil)?S.passMessage:normal;
  }else{
    $('nextClock').textContent='--:--:--';
@@ -246,7 +248,7 @@ function start(){
      .sort((a,b)=>a.min-b.min),
    pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),
    number:$('number').value,
-   passMessage:'',passMessageUntil:0
+   passMessage:'',passMessageUntil:0,nextPassageMs:null
  };
  $('pilot').textContent=S.pilot+(S.number?' • N°'+S.number:'');
  resetStatsUI();
@@ -271,9 +273,12 @@ document.addEventListener('DOMContentLoaded',()=>{
    let count=S.passages.length;
 
    if(count===1){
+     S.nextPassageMs=null;
      S.passMessage='✅ PREMIER PASSAGE ENREGISTRÉ';
    }else{
      let ls=laps(),current=ls[ls.length-1];
+     let ps=prediction();
+     S.nextPassageMs=ps ? t + ps.avg*1000 : null;
      S.passMessage=`✅ TOUR ${current.n} ENREGISTRÉ — ${fmt(current.t)}`;
    }
 
