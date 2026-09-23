@@ -167,7 +167,8 @@ function pitMessage(now,ps){
      let nextElapsed=elapsed+ps.avg/60;
      if(nextElapsed>=p.min-0.75&&nextElapsed<=p.min+2.5){
        p.armed=true;
-       return `🚨 PANNEAUTE : STAND • prochain passage ${clock(now+ps.avg*1000)}`;
+       // L'heure du passage est déjà figée dans S.nextPassageMs.
+       return `🚨 PANNEAUTE : STAND • prochain passage ${clock(S.nextPassageMs)}`;
      }
    }
    return `🟠 STAND DANS ~${Math.max(1,Math.ceil(remaining))} MIN`;
