@@ -216,6 +216,7 @@ function attachLongPress(el,id,kind){
     el.addEventListener('click',e=>{
       e.preventDefault();
       e.stopPropagation();
+      closePop();
       const lastAt=S.passages.length?Number(S.passages[S.passages.length-1]):null;
       if(Number(id)!==lastAt)return;
       el.classList.add('longpressing');
@@ -241,7 +242,6 @@ function attachLongPress(el,id,kind){
 }
 
 function showLapAction(el,at,px,py){
- closePop();
  const selectedAt=Number(at);
  const lastAt=S.passages.length?Number(S.passages[S.passages.length-1]):null;
  pop=document.createElement('button');
