@@ -198,33 +198,55 @@ function saveHistory(item){let h=historyData();h.unshift(item);localStorage.setI
 function renderHistory(){let list=historyData().filter(x=>x.type===currentHistoryFilter);let el=$('historyList');if(!list.length){el.innerHTML='<div class="card sub">Aucune session enregistrée dans cette catégorie.</div>';return;}el.innerHTML=list.map(x=>{let d=new Date(x.date),best=x.laps.length?Math.min(...x.laps.map(l=>l.t)):'—',avg=x.laps.length?x.laps.reduce((a,l)=>a+l.t,0)/x.laps.length:'—';return `<div class="history-item" data-id="${x.id}"><h3>${sessionLabel(x.type)}</h3><div class="sub">${d.toLocaleDateString('fr-FR')} • ${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div><b>${x.pilot}${x.number&&x.number!=='0'?' • N°'+x.number:''}</b><div class="sub">${x.circuit||'Circuit non renseigné'}</div><div class="summary"><div class="mini"><b>${x.laps.length}</b><span>TOURS</span></div><div class="mini"><b>${fmt(avg)}</b><span>MOYENNE</span></div><div class="mini"><b>${fmt(best)}</b><span>MEILLEUR</span></div></div></div>`}).join('');}
 function showHistory(){currentHistoryFilter='training';document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.filter==='training'));renderHistory();show('history');}
 function removeHistory(id){let h=historyData();localStorage.setItem(HISTORY_KEY,JSON.stringify(h.filter(x=>String(x.id)!==String(id))));renderHistory();}
-let pop=null,popTimer=null;
-function closePop(){if(pop){pop.remove();pop=null;}clearTimeout(popTimer);}
+let pop=null,popTimer=null,activeLongPressEl=null,activeLongPressTimer=null;
+function clearActiveLongPress(){
+  if(activeLongPressEl){activeLongPressEl.classList.remove('longpressing');activeLongPressEl=null;}
+  clearTimeout(activeLongPressTimer);activeLongPressTimer=null;
+}
+function closePop(){
+  if(pop){pop.remove();pop=null;}
+  clearTimeout(popTimer);
+  clearActiveLongPress();
+}
 function attachLongPress(el,id,kind){
-  let timer=null,sx=0,sy=0,pressing=false;
-  const clearPress=()=>{
+  let timer=null,sx=0,sy=0,longTriggered=false;
+  const cancelPress=()=>{
     clearTimeout(timer);
-    if(pressing){pressing=false;el.classList.remove('longpressing');}
+    if(!longTriggered){el.classList.remove('longpressing');}
+    longTriggered=false;
   };
   el.addEventListener('pointerdown',e=>{
-    sx=e.clientX;sy=e.clientY;
+    sx=e.clientX;sy=e.clientY;longTriggered=false;
     clearTimeout(timer);
     if(kind==='lap'){
       const lastAt=S.passages.length?Number(S.passages[S.passages.length-1]):null;
       if(Number(id)===lastAt){
-        pressing=true;
+        activeLongPressEl=el;
         el.classList.add('longpressing');
       }
     }
     timer=setTimeout(()=>{
+      longTriggered=true;
       if(kind==='lap')showLapAction(el,id,e.clientX,e.clientY);
       else showHistoryAction(el,id);
     },650);
   });
   el.addEventListener('pointermove',e=>{
-    if(Math.hypot(e.clientX-sx,e.clientY-sy)>12) clearPress();
+    if(Math.hypot(e.clientX-sx,e.clientY-sy)>12){
+      clearTimeout(timer);
+      if(!longTriggered){el.classList.remove('longpressing');activeLongPressEl=null;}
+      longTriggered=false;
+    }
   });
-  ['pointerup','pointercancel','pointerleave'].forEach(ev=>el.addEventListener(ev,clearPress));
+  el.addEventListener('pointerup',()=>{
+    clearTimeout(timer);
+    // Après un appui long, on conserve volontairement le rouge et la bulle.
+    // L'utilisateur peut alors lire puis toucher « Annuler le dernier passage »,
+    // ou toucher ailleurs pour abandonner l'action.
+    if(!longTriggered)el.classList.remove('longpressing');
+  });
+  el.addEventListener('pointercancel',cancelPress);
+  el.addEventListener('pointerleave',()=>{if(!longTriggered)cancelPress();});
 }
 
 function showLapAction(el,at,px,py){
@@ -269,7 +291,7 @@ function showLapAction(el,at,px,py){
  popTimer=setTimeout(closePop,5000);
 }
 function showHistoryAction(el,id){closePop();pop=document.createElement('button');pop.className='context-pop';pop.textContent='🗑️ Supprimer cette session';pop.style.left=Math.max(10,Math.min(window.innerWidth-230,el.getBoundingClientRect().left))+'px';pop.style.top=Math.max(10,el.getBoundingClientRect().top-55)+'px';pop.onclick=()=>{closePop();if(confirm('Supprimer cette session ?\n\nLes résultats seront définitivement supprimés.'))removeHistory(id);};document.body.appendChild(pop);popTimer=setTimeout(closePop,5000);}
-document.addEventListener('click',e=>{if(pop&&!e.target.closest('.context-pop'))closePop();});
+document.addEventListener('click',e=>{if(pop&&!e.target.closest('.context-pop')){if(activeLongPressEl&&e.target.closest('.laprow')===activeLongPressEl)return;closePop();}});
 document.addEventListener('DOMContentLoaded',()=>{
  $('startBtn').addEventListener('click',start);$('historyBtn').addEventListener('click',showHistory);$('backHomeBtn').addEventListener('click',()=>show('setup'));
  document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{currentHistoryFilter=b.dataset.filter;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x===b));renderHistory();}));
