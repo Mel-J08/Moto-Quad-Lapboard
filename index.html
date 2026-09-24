@@ -206,45 +206,36 @@ function clearActiveLongPress(){
 function closePop(){
   if(pop){pop.remove();pop=null;}
   clearTimeout(popTimer);
-  clearActiveLongPress();
+  if(activeLongPressEl){activeLongPressEl.classList.remove('longpressing');activeLongPressEl=null;}
+  clearTimeout(activeLongPressTimer);activeLongPressTimer=null;
 }
 function attachLongPress(el,id,kind){
-  let timer=null,sx=0,sy=0,longTriggered=false;
-  const cancelPress=()=>{
-    clearTimeout(timer);
-    if(!longTriggered){el.classList.remove('longpressing');}
-    longTriggered=false;
-  };
-  el.addEventListener('pointerdown',e=>{
-    sx=e.clientX;sy=e.clientY;longTriggered=false;
-    clearTimeout(timer);
-    if(kind==='lap'){
+  // Pour les passages : un simple appui sur le DERNIER passage ouvre l'action.
+  // La ligne reste rouge tant que la bulle est ouverte. Un appui ailleurs annule.
+  if(kind==='lap'){
+    el.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
       const lastAt=S.passages.length?Number(S.passages[S.passages.length-1]):null;
-      if(Number(id)===lastAt){
-        activeLongPressEl=el;
-        el.classList.add('longpressing');
-      }
-    }
-    timer=setTimeout(()=>{
-      longTriggered=true;
-      if(kind==='lap')showLapAction(el,id,e.clientX,e.clientY);
-      else showHistoryAction(el,id);
-    },650);
+      if(Number(id)!==lastAt)return;
+      el.classList.add('longpressing');
+      activeLongPressEl=el;
+      showLapAction(el,id,e.clientX,e.clientY);
+    });
+    return;
+  }
+
+  // Historique : on conserve l'appui long pour demander la suppression.
+  let timer=null,sx=0,sy=0,longTriggered=false;
+  const cancelPress=()=>{clearTimeout(timer);if(!longTriggered)el.classList.remove('longpressing');longTriggered=false;};
+  el.addEventListener('pointerdown',e=>{
+    sx=e.clientX;sy=e.clientY;longTriggered=false;clearTimeout(timer);
+    timer=setTimeout(()=>{longTriggered=true;showHistoryAction(el,id);},650);
   });
   el.addEventListener('pointermove',e=>{
-    if(Math.hypot(e.clientX-sx,e.clientY-sy)>12){
-      clearTimeout(timer);
-      if(!longTriggered){el.classList.remove('longpressing');activeLongPressEl=null;}
-      longTriggered=false;
-    }
+    if(Math.hypot(e.clientX-sx,e.clientY-sy)>12){clearTimeout(timer);longTriggered=false;}
   });
-  el.addEventListener('pointerup',()=>{
-    clearTimeout(timer);
-    // Après un appui long, on conserve volontairement le rouge et la bulle.
-    // L'utilisateur peut alors lire puis toucher « Annuler le dernier passage »,
-    // ou toucher ailleurs pour abandonner l'action.
-    if(!longTriggered)el.classList.remove('longpressing');
-  });
+  el.addEventListener('pointerup',()=>{clearTimeout(timer);});
   el.addEventListener('pointercancel',cancelPress);
   el.addEventListener('pointerleave',()=>{if(!longTriggered)cancelPress();});
 }
