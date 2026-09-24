@@ -43,6 +43,7 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 .pass2 small{font-size:12px;color:#f4f4f4;font-weight:700}
 .remaining2{background:rgba(17,19,25,.90);border:1px solid rgba(255,255,255,.14);text-align:center;padding:15px 12px}.remaining2 .sub{font-size:15px}.remaining2 .remain{font-size:55px;font-weight:950;line-height:1.05;margin-top:5px;color:#fff}
 .remaining2 .remain.danger{color:#ffffff !important;opacity:1 !important;-webkit-text-fill-color:#ffffff !important;font-size:64px;font-weight:950;text-shadow:0 2px 8px rgba(0,0,0,.75)}
+.overtime-card{border-color:rgba(255,145,0,.65)!important;background:rgba(70,38,8,.82)!important}.overtime-card .remain{color:#ffb347!important;-webkit-text-fill-color:#ffb347!important;text-shadow:0 2px 8px rgba(0,0,0,.75)}
 .stats2 .metric{background:rgba(16,18,23,.90);border:1px solid rgba(255,255,255,.05)}
 .stats2 .metric b{font-size:20px}
 @media(max-width:380px){.hero2 .big{font-size:28px}.hero2 .next{font-size:38px}.pass2{font-size:32px}}
@@ -121,10 +122,10 @@ button:active{transform:scale(.975);filter:brightness(1.08)}
 
 <button id="passBtn" class="pass pass2">🏁 PASSAGE<small>appuyer au moment où le pilote passe</small></button>
 
-<div class="card remaining2">
-<div class="sub" style="font-weight:900;letter-spacing:.08em"><span class="icon">⌛</span>TEMPS RESTANT DE LA COURSE</div>
+<div class="card remaining2" id="remainingCard">
+<div id="remainingTitle" class="sub" style="font-weight:900;letter-spacing:.08em"><span class="icon">⌛</span>TEMPS RESTANT DE LA COURSE</div>
 <div id="raceRemaining" class="remain danger">—</div>
-<div class="sub small">temps restant à annoncer au pilote</div>
+<div id="remainingSub" class="sub small">temps restant à annoncer au pilote</div>
 </div>
 
 <div class="card stats2"><div class="grid3">
@@ -169,7 +170,7 @@ button:active{transform:scale(.975);filter:brightness(1.08)}
 </div>
 
 <script>
-let S={running:false,paused:false,startMs:0,duration:0,passages:[],pits:[],pilot:'',number:'',timer:null,passFlash:null,passMessage:'',passMessageUntil:0,nextPassageMs:null,sessionType:'training',circuit:'',wakeLock:null,finishedAt:null};
+let S={running:false,paused:false,startMs:0,duration:0,overtime:false,overtimeStartMs:null,passages:[],pits:[],pilot:'',number:'',timer:null,passFlash:null,passMessage:'',passMessageUntil:0,nextPassageMs:null,sessionType:'training',circuit:'',wakeLock:null,finishedAt:null};
 let currentHistoryFilter='training', pendingSession=null;
 const $=id=>document.getElementById(id);
 const HISTORY_KEY='mql_history_v1', DRAFT_KEY='mql_draft_v1';
@@ -186,10 +187,10 @@ function pitMessage(now,ps){let p=nextPit();if(!p)return null;let elapsed=(now-S
 function resetStatsUI(){$('passCount').textContent='0';$('lap').textContent='0';$('lastLap').textContent='—';$('avg').textContent='—';$('best').textContent='—';$('var').textContent='—';$('nextClock').textContent='--:--:--';$('nextDelta').textContent='En attente du premier passage…';$('raceRemaining').textContent='—';$('laps').innerHTML='<div class="sub">Aucun tour enregistré.</div>';setAlert(null);}
 function saveDraft(){if(!S.running)return;try{localStorage.setItem(DRAFT_KEY,JSON.stringify({...S,timer:null,wakeLock:null}));}catch(e){}}
 function clearDraft(){try{localStorage.removeItem(DRAFT_KEY)}catch(e){}}
-function render(){if(!$('race').classList.contains('active'))return;let now=Date.now(),elapsed=(now-S.startMs)/1000;if(S.running&&!S.paused&&elapsed>=S.duration){finish();return;}$('raceClock').textContent=fmt(Math.max(0,elapsed));let rem=Math.max(0,S.duration-elapsed);$('raceRemaining').textContent=fmt(rem);let ps=prediction();if(ps&&S.nextPassageMs){$('nextClock').textContent=clock(S.nextPassageMs);let delta=(S.nextPassageMs-now)/1000;if(delta<0){$('nextDelta').textContent=`PASSAGE ATTENDU • +${fmt(-delta)}`;}else{$('nextDelta').textContent=(S.passMessage&&now<S.passMessageUntil)?S.passMessage:`≈ dans ${fmt(delta)} • fenêtre ± ${Math.max(2,Math.round(ps.spread))} s`;}}else{$('nextClock').textContent='--:--:--';$('nextDelta').textContent=(S.passMessage&&now<S.passMessageUntil)?S.passMessage:'En attente du premier passage…';}setAlert(pitMessage(now,ps));let ls=laps();$('passCount').textContent=S.passages.length;$('lap').textContent=ls.length;$('lastLap').textContent=ls.length?fmt(ls.at(-1).t):'—';if(ls.length){let avg=ls.reduce((a,x)=>a+x.t,0)/ls.length,best=Math.min(...ls.map(x=>x.t));$('avg').textContent=fmt(avg);$('best').textContent=fmt(best);$('var').textContent='±'+Math.max(5,Math.round(ps?ps.spread:5))+'s';}$('laps').innerHTML=ls.slice().reverse().map(x=>`<div class="laprow" data-at="${x.at}"><span>Tour ${x.n}</span><b>${fmt(x.t)}</b><span class="sub">${clock(x.at)}</span></div>`).join('')||'<div class="sub">Aucun tour enregistré.</div>';saveDraft();}
-function sessionData(){let ls=laps(),total=Math.max(0,(S.finishedAt||Date.now())-S.startMs)/1000;return{id:Date.now(),date:new Date().toISOString(),type:S.sessionType,pilot:S.pilot,number:S.number,circuit:S.circuit,duration:S.duration,totalElapsed:total,passages:[...S.passages],laps:ls,pits:S.pits.map(p=>({...p,targetPassageMs:typeof p.targetPassageMs==='number'?p.targetPassageMs:null,doneAt:typeof p.doneAt==='number'?p.doneAt:null}))};}
-function finish(){if(!S.running)return;clearInterval(S.timer);S.timer=null;S.running=false;S.paused=false;S.finishedAt=Date.now();let ls=laps(),totalElapsed=Math.max(0,(S.finishedAt-S.startMs)/1000);$('finishPilot').textContent=S.pilot+(S.number&&S.number!=='0'?' • N°'+S.number:'');$('fPasses').textContent=S.passages.length;$('fLaps').textContent=ls.length;$('fBest').textContent=ls.length?fmt(Math.min(...ls.map(x=>x.t))):'—';$('fAvg').textContent=ls.length?fmt(ls.reduce((a,x)=>a+x.t,0)/ls.length):'—';$('finishText').innerHTML=`<b>${sessionLabel(S.sessionType)} — session terminée.</b><br><span class="sub">Temps écoulé : ${fmt(totalElapsed)}</span>`;pendingSession=sessionData();clearDraft();$('saveBtn').disabled=false;$('saveBtn').textContent='💾 ENREGISTRER LA SESSION';show('finish');releaseWakeLock();}
-function start(){let dur=+$('duration').value;if(!(dur>0)){alert('Indique la durée de la session avant de démarrer.');return;}let type=$('sessionType').value;if(type==='cfs'){alert('La Course CFS sera disponible lorsque la connexion au Live CFS sera intégrée.');return;}S={running:true,paused:false,startMs:plannedStart(),duration:dur*60,passages:[],pits:[$('pit1').value,$('pit2').value].map(v=>({min:+v,done:false,armed:false,targetPassageMs:null,doneAt:null})).filter(x=>x.min>0).sort((a,b)=>a.min-b.min),pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value,circuit:$('circuit').value.trim(),timer:null,passFlash:null,passMessage:'',passMessageUntil:0,nextPassageMs:null,sessionType:type,wakeLock:null,finishedAt:null};$('pilot').textContent=S.pilot+(S.number&&S.number!=='0'?' • N°'+S.number:'');$('raceStatus').textContent=`${sessionLabel(type)} EN COURS`;document.getElementById('race').className='screen racebg mode-'+type;resetStatsUI();show('race');$('finishText').textContent='';clearInterval(S.timer);S.timer=setInterval(render,500);requestWakeLock();render();}
+function render(){if(!$('race').classList.contains('active'))return;let now=Date.now(),elapsed=(now-S.startMs)/1000;if(S.running&&!S.paused&&elapsed>=S.duration&&!S.overtime){S.overtime=true;S.overtimeStartMs=S.startMs+S.duration*1000;}$('raceClock').textContent=fmt(Math.max(0,elapsed));let rem=Math.max(0,S.duration-elapsed);let overtimeSec=S.overtime?Math.max(0,(now-S.overtimeStartMs)/1000):0;if(S.overtime){$('remainingCard').classList.add('overtime-card');$('remainingTitle').innerHTML='<span class="icon">🏁</span>TEMPS RÉGLEMENTAIRE ÉCOULÉ';$('raceRemaining').textContent='+'+fmt(overtimeSec);$('remainingSub').textContent='temps additionnel • panneautage jusqu’à l’arrivée';}else{$('remainingCard').classList.remove('overtime-card');$('remainingTitle').innerHTML='<span class="icon">⌛</span>TEMPS RESTANT DE LA COURSE';$('raceRemaining').textContent=fmt(rem);$('remainingSub').textContent='temps restant à annoncer au pilote';}let ps=prediction();if(ps&&S.nextPassageMs){$('nextClock').textContent=clock(S.nextPassageMs);let delta=(S.nextPassageMs-now)/1000;if(delta<0){$('nextDelta').textContent=`PASSAGE ATTENDU • +${fmt(-delta)}`;}else{$('nextDelta').textContent=(S.passMessage&&now<S.passMessageUntil)?S.passMessage:`≈ dans ${fmt(delta)} • fenêtre ± ${Math.max(2,Math.round(ps.spread))} s`;}}else{$('nextClock').textContent='--:--:--';$('nextDelta').textContent=(S.passMessage&&now<S.passMessageUntil)?S.passMessage:'En attente du premier passage…';}setAlert(pitMessage(now,ps));let ls=laps();$('passCount').textContent=S.passages.length;$('lap').textContent=ls.length;$('lastLap').textContent=ls.length?fmt(ls.at(-1).t):'—';if(ls.length){let avg=ls.reduce((a,x)=>a+x.t,0)/ls.length,best=Math.min(...ls.map(x=>x.t));$('avg').textContent=fmt(avg);$('best').textContent=fmt(best);$('var').textContent='±'+Math.max(5,Math.round(ps?ps.spread:5))+'s';}$('laps').innerHTML=ls.slice().reverse().map(x=>`<div class="laprow" data-at="${x.at}"><span>Tour ${x.n}</span><b>${fmt(x.t)}</b><span class="sub">${clock(x.at)}</span></div>`).join('')||'<div class="sub">Aucun tour enregistré.</div>';saveDraft();}
+function sessionData(){let ls=laps(),end=S.finishedAt||Date.now(),total=Math.max(0,end-S.startMs)/1000,overtime=Math.max(0,total-S.duration);return{id:Date.now(),date:new Date().toISOString(),type:S.sessionType,pilot:S.pilot,number:S.number,circuit:S.circuit,duration:S.duration,overtime:overtime,totalElapsed:total,passages:[...S.passages],laps:ls,pits:S.pits.map(p=>({...p,targetPassageMs:typeof p.targetPassageMs==='number'?p.targetPassageMs:null,doneAt:typeof p.doneAt==='number'?p.doneAt:null}))};}
+function finish(){if(!S.running)return;clearInterval(S.timer);S.timer=null;S.running=false;S.paused=false;S.finishedAt=Date.now();let ls=laps(),totalElapsed=Math.max(0,(S.finishedAt-S.startMs)/1000),overtime=Math.max(0,totalElapsed-S.duration);$('finishPilot').textContent=S.pilot+(S.number&&S.number!=='0'?' • N°'+S.number:'');$('fPasses').textContent=S.passages.length;$('fLaps').textContent=ls.length;$('fBest').textContent=ls.length?fmt(Math.min(...ls.map(x=>x.t))):'—';$('fAvg').textContent=ls.length?fmt(ls.reduce((a,x)=>a+x.t,0)/ls.length):'—';$('finishText').innerHTML=`<b>${sessionLabel(S.sessionType)} — session terminée.</b><br><span class="sub">Temps réglementaire : ${fmt(S.duration)}<br>Temps additionnel : +${fmt(overtime)}<br>Temps total de session : ${fmt(totalElapsed)}</span>`;pendingSession=sessionData();clearDraft();$('saveBtn').disabled=false;$('saveBtn').textContent='💾 ENREGISTRER LA SESSION';show('finish');releaseWakeLock();}
+function start(){let dur=+$('duration').value;if(!(dur>0)){alert('Indique la durée de la session avant de démarrer.');return;}let type=$('sessionType').value;if(type==='cfs'){alert('La Course CFS sera disponible lorsque la connexion au Live CFS sera intégrée.');return;}S={running:true,paused:false,startMs:plannedStart(),duration:dur*60,overtime:false,overtimeStartMs:null,passages:[],pits:[$('pit1').value,$('pit2').value].map(v=>({min:+v,done:false,armed:false,targetPassageMs:null,doneAt:null})).filter(x=>x.min>0).sort((a,b)=>a.min-b.min),pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value,circuit:$('circuit').value.trim(),timer:null,passFlash:null,passMessage:'',passMessageUntil:0,nextPassageMs:null,sessionType:type,wakeLock:null,finishedAt:null};$('pilot').textContent=S.pilot+(S.number&&S.number!=='0'?' • N°'+S.number:'');$('raceStatus').textContent=`${sessionLabel(type)} EN COURS`;document.getElementById('race').className='screen racebg mode-'+type;resetStatsUI();show('race');$('finishText').textContent='';clearInterval(S.timer);S.timer=setInterval(render,500);requestWakeLock();render();}
 async function requestWakeLock(){try{if('wakeLock' in navigator)S.wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
 async function releaseWakeLock(){try{if(S.wakeLock)await S.wakeLock.release()}catch(e){}S.wakeLock=null;}
 function historyData(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch(e){return[]}}
@@ -203,42 +204,41 @@ function attachLongPress(el,id,kind){let timer, sx,sy;el.addEventListener('point
 function showLapAction(el,at){
  closePop();
  const selectedAt=Number(at);
+ const lastAt=S.passages.length?S.passages[S.passages.length-1]:null;
  pop=document.createElement('button');
  pop.type='button';
  pop.className='context-pop';
- pop.textContent='↩️ Annuler ce passage';
- pop.setAttribute('aria-label','Annuler ce passage');
- pop.style.left=Math.max(10,Math.min(window.innerWidth-210,el.getBoundingClientRect().left))+'px';
+ // Pour éviter toute erreur de recalcul sur un ancien passage, la correction
+ // manuelle est volontairement limitée au dernier PASSAGE enregistré.
+ if(selectedAt!==Number(lastAt)){
+   pop.textContent='ℹ️ Seul le dernier passage peut être corrigé';
+   pop.setAttribute('aria-label','Seul le dernier passage peut être corrigé');
+ }else{
+   pop.textContent='↩️ Annuler le dernier passage';
+   pop.setAttribute('aria-label','Annuler le dernier passage');
+ }
+ pop.style.left=Math.max(10,Math.min(window.innerWidth-245,el.getBoundingClientRect().left))+'px';
  pop.style.top=Math.max(10,el.getBoundingClientRect().top-55)+'px';
- // Le menu doit rester cliquable sur mobile : il bloque les gestes du document
- // et utilise un seul gestionnaire pointerup, ce qui évite que le clic global ferme
- // la bulle avant que l'action ne soit exécutée.
- pop.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();});
+ pop.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();},{passive:false});
  pop.addEventListener('pointerup',e=>{
    e.preventDefault();
    e.stopPropagation();
-   const idx=S.passages.findIndex(x=>Number(x)===selectedAt);
-   if(idx<0){closePop();return;}
-
-   // Supprime exactement le passage sélectionné. Tous les calculs dérivés
-   // sont ensuite reconstruits à partir de la liste restante.
-   S.passages.splice(idx,1);
-
-   // Si ce passage avait validé un arrêt au stand, celui-ci redevient à faire.
+   if(selectedAt!==Number(S.passages[S.passages.length-1])){closePop();return;}
+   S.passages.pop();
+   // Si le dernier passage avait validé un stand, on annule aussi cette validation.
    S.pits.forEach(p=>{
      if(Number(p.doneAt)===selectedAt){p.done=false;p.doneAt=null;p.armed=false;p.targetPassageMs=null;}
      else if(Number(p.targetPassageMs)===selectedAt){p.targetPassageMs=null;p.armed=false;}
    });
-
    const ps=prediction();
    S.nextPassageMs=(ps&&S.passages.length)?S.passages[S.passages.length-1]+ps.avg*1000:null;
-   S.passMessage='↩️ PASSAGE ANNULÉ';
+   S.passMessage='↩️ DERNIER PASSAGE ANNULÉ';
    S.passMessageUntil=Date.now()+1800;
    closePop();
    render();
  },{passive:false});
  document.body.appendChild(pop);
- popTimer=setTimeout(closePop,5000);
+ popTimer=setTimeout(closePop,4000);
 }
 function showHistoryAction(el,id){closePop();pop=document.createElement('button');pop.className='context-pop';pop.textContent='🗑️ Supprimer cette session';pop.style.left=Math.max(10,Math.min(window.innerWidth-230,el.getBoundingClientRect().left))+'px';pop.style.top=Math.max(10,el.getBoundingClientRect().top-55)+'px';pop.onclick=()=>{closePop();if(confirm('Supprimer cette session ?\n\nLes résultats seront définitivement supprimés.'))removeHistory(id);};document.body.appendChild(pop);popTimer=setTimeout(closePop,5000);}
 document.addEventListener('click',e=>{if(pop&&!e.target.closest('.context-pop'))closePop();});
