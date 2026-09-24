@@ -187,9 +187,9 @@ function resetStatsUI(){$('passCount').textContent='0';$('lap').textContent='0';
 function saveDraft(){if(!S.running)return;try{localStorage.setItem(DRAFT_KEY,JSON.stringify({...S,timer:null,wakeLock:null}));}catch(e){}}
 function clearDraft(){try{localStorage.removeItem(DRAFT_KEY)}catch(e){}}
 function render(){if(!$('race').classList.contains('active'))return;let now=Date.now(),elapsed=(now-S.startMs)/1000;if(S.running&&!S.paused&&elapsed>=S.duration){finish();return;}$('raceClock').textContent=fmt(Math.max(0,elapsed));let rem=Math.max(0,S.duration-elapsed);$('raceRemaining').textContent=fmt(rem);let ps=prediction();if(ps&&S.nextPassageMs){$('nextClock').textContent=clock(S.nextPassageMs);let delta=(S.nextPassageMs-now)/1000;if(delta<0){$('nextDelta').textContent=`PASSAGE ATTENDU • +${fmt(-delta)}`;}else{$('nextDelta').textContent=(S.passMessage&&now<S.passMessageUntil)?S.passMessage:`≈ dans ${fmt(delta)} • fenêtre ± ${Math.max(2,Math.round(ps.spread))} s`;}}else{$('nextClock').textContent='--:--:--';$('nextDelta').textContent=(S.passMessage&&now<S.passMessageUntil)?S.passMessage:'En attente du premier passage…';}setAlert(pitMessage(now,ps));let ls=laps();$('passCount').textContent=S.passages.length;$('lap').textContent=ls.length;$('lastLap').textContent=ls.length?fmt(ls.at(-1).t):'—';if(ls.length){let avg=ls.reduce((a,x)=>a+x.t,0)/ls.length,best=Math.min(...ls.map(x=>x.t));$('avg').textContent=fmt(avg);$('best').textContent=fmt(best);$('var').textContent='±'+Math.max(5,Math.round(ps?ps.spread:5))+'s';}$('laps').innerHTML=ls.slice().reverse().map(x=>`<div class="laprow" data-at="${x.at}"><span>Tour ${x.n}</span><b>${fmt(x.t)}</b><span class="sub">${clock(x.at)}</span></div>`).join('')||'<div class="sub">Aucun tour enregistré.</div>';saveDraft();}
-function sessionData(){let ls=laps(),total=Math.max(0,(S.finishedAt||Date.now())-S.startMs)/1000;return{id:Date.now(),date:new Date().toISOString(),type:S.sessionType,pilot:S.pilot,number:S.number,circuit:S.circuit,duration:S.duration,totalElapsed:total,passages:[...S.passages],laps:ls,pits:S.pits.map(p=>({...p,targetPassageMs:typeof p.targetPassageMs==='number'?p.targetPassageMs:null}))};}
+function sessionData(){let ls=laps(),total=Math.max(0,(S.finishedAt||Date.now())-S.startMs)/1000;return{id:Date.now(),date:new Date().toISOString(),type:S.sessionType,pilot:S.pilot,number:S.number,circuit:S.circuit,duration:S.duration,totalElapsed:total,passages:[...S.passages],laps:ls,pits:S.pits.map(p=>({...p,targetPassageMs:typeof p.targetPassageMs==='number'?p.targetPassageMs:null,doneAt:typeof p.doneAt==='number'?p.doneAt:null}))};}
 function finish(){if(!S.running)return;clearInterval(S.timer);S.timer=null;S.running=false;S.paused=false;S.finishedAt=Date.now();let ls=laps(),totalElapsed=Math.max(0,(S.finishedAt-S.startMs)/1000);$('finishPilot').textContent=S.pilot+(S.number&&S.number!=='0'?' • N°'+S.number:'');$('fPasses').textContent=S.passages.length;$('fLaps').textContent=ls.length;$('fBest').textContent=ls.length?fmt(Math.min(...ls.map(x=>x.t))):'—';$('fAvg').textContent=ls.length?fmt(ls.reduce((a,x)=>a+x.t,0)/ls.length):'—';$('finishText').innerHTML=`<b>${sessionLabel(S.sessionType)} — session terminée.</b><br><span class="sub">Temps écoulé : ${fmt(totalElapsed)}</span>`;pendingSession=sessionData();clearDraft();$('saveBtn').disabled=false;$('saveBtn').textContent='💾 ENREGISTRER LA SESSION';show('finish');releaseWakeLock();}
-function start(){let dur=+$('duration').value;if(!(dur>0)){alert('Indique la durée de la session avant de démarrer.');return;}let type=$('sessionType').value;if(type==='cfs'){alert('La Course CFS sera disponible lorsque la connexion au Live CFS sera intégrée.');return;}S={running:true,paused:false,startMs:plannedStart(),duration:dur*60,passages:[],pits:[$('pit1').value,$('pit2').value].map(v=>({min:+v,done:false,armed:false,targetPassageMs:null})).filter(x=>x.min>0).sort((a,b)=>a.min-b.min),pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value,circuit:$('circuit').value.trim(),timer:null,passFlash:null,passMessage:'',passMessageUntil:0,nextPassageMs:null,sessionType:type,wakeLock:null,finishedAt:null};$('pilot').textContent=S.pilot+(S.number&&S.number!=='0'?' • N°'+S.number:'');$('raceStatus').textContent=`${sessionLabel(type)} EN COURS`;document.getElementById('race').className='screen racebg mode-'+type;resetStatsUI();show('race');$('finishText').textContent='';clearInterval(S.timer);S.timer=setInterval(render,500);requestWakeLock();render();}
+function start(){let dur=+$('duration').value;if(!(dur>0)){alert('Indique la durée de la session avant de démarrer.');return;}let type=$('sessionType').value;if(type==='cfs'){alert('La Course CFS sera disponible lorsque la connexion au Live CFS sera intégrée.');return;}S={running:true,paused:false,startMs:plannedStart(),duration:dur*60,passages:[],pits:[$('pit1').value,$('pit2').value].map(v=>({min:+v,done:false,armed:false,targetPassageMs:null,doneAt:null})).filter(x=>x.min>0).sort((a,b)=>a.min-b.min),pilot:(($('first').value+' '+$('last').value).trim()||'Pilote'),number:$('number').value,circuit:$('circuit').value.trim(),timer:null,passFlash:null,passMessage:'',passMessageUntil:0,nextPassageMs:null,sessionType:type,wakeLock:null,finishedAt:null};$('pilot').textContent=S.pilot+(S.number&&S.number!=='0'?' • N°'+S.number:'');$('raceStatus').textContent=`${sessionLabel(type)} EN COURS`;document.getElementById('race').className='screen racebg mode-'+type;resetStatsUI();show('race');$('finishText').textContent='';clearInterval(S.timer);S.timer=setInterval(render,500);requestWakeLock();render();}
 async function requestWakeLock(){try{if('wakeLock' in navigator)S.wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
 async function releaseWakeLock(){try{if(S.wakeLock)await S.wakeLock.release()}catch(e){}S.wakeLock=null;}
 function historyData(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch(e){return[]}}
@@ -207,29 +207,36 @@ function showLapAction(el,at){
  pop.type='button';
  pop.className='context-pop';
  pop.textContent='↩️ Annuler ce passage';
+ pop.setAttribute('aria-label','Annuler ce passage');
  pop.style.left=Math.max(10,Math.min(window.innerWidth-210,el.getBoundingClientRect().left))+'px';
  pop.style.top=Math.max(10,el.getBoundingClientRect().top-55)+'px';
- let done=false;
- const cancelPassage=(e)=>{
+ // Le menu doit rester cliquable sur mobile : il bloque les gestes du document
+ // et utilise un seul gestionnaire pointerup, ce qui évite que le clic global ferme
+ // la bulle avant que l'action ne soit exécutée.
+ pop.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();});
+ pop.addEventListener('pointerup',e=>{
    e.preventDefault();
    e.stopPropagation();
-   if(done)return;
-   done=true;
-   const idx=S.passages.indexOf(selectedAt);
+   const idx=S.passages.findIndex(x=>Number(x)===selectedAt);
    if(idx<0){closePop();return;}
+
+   // Supprime exactement le passage sélectionné. Tous les calculs dérivés
+   // sont ensuite reconstruits à partir de la liste restante.
    S.passages.splice(idx,1);
-   S.nextPassageMs=null;
+
+   // Si ce passage avait validé un arrêt au stand, celui-ci redevient à faire.
+   S.pits.forEach(p=>{
+     if(Number(p.doneAt)===selectedAt){p.done=false;p.doneAt=null;p.armed=false;p.targetPassageMs=null;}
+     else if(Number(p.targetPassageMs)===selectedAt){p.targetPassageMs=null;p.armed=false;}
+   });
+
    const ps=prediction();
-   if(ps&&S.passages.length)S.nextPassageMs=S.passages.at(-1)+ps.avg*1000;
-   S.pits.forEach(p=>{if(p.targetPassageMs===selectedAt)p.targetPassageMs=null});
+   S.nextPassageMs=(ps&&S.passages.length)?S.passages[S.passages.length-1]+ps.avg*1000:null;
    S.passMessage='↩️ PASSAGE ANNULÉ';
    S.passMessageUntil=Date.now()+1800;
    closePop();
    render();
- };
- pop.addEventListener('pointerup',cancelPassage);
- pop.addEventListener('click',cancelPassage);
- pop.addEventListener('touchend',cancelPassage,{passive:false});
+ },{passive:false});
  document.body.appendChild(pop);
  popTimer=setTimeout(closePop,5000);
 }
@@ -238,7 +245,7 @@ document.addEventListener('click',e=>{if(pop&&!e.target.closest('.context-pop'))
 document.addEventListener('DOMContentLoaded',()=>{
  $('startBtn').addEventListener('click',start);$('historyBtn').addEventListener('click',showHistory);$('backHomeBtn').addEventListener('click',()=>show('setup'));
  document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{currentHistoryFilter=b.dataset.filter;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x===b));renderHistory();}));
- $('passBtn').addEventListener('click',()=>{if(!S.running||S.paused)return;let t=Date.now();S.passages.push(t);let armedPit=S.pits.find(p=>!p.done&&p.armed);if(armedPit){armedPit.done=true;armedPit.armed=false;}let count=S.passages.length;if(count===1){S.nextPassageMs=null;S.passMessage='✅ PREMIER PASSAGE ENREGISTRÉ';}else{let ls=laps(),current=ls[ls.length-1],ps=prediction();S.nextPassageMs=ps?t+ps.avg*1000:null;S.passMessage=`✅ TOUR ${current.n} ENREGISTRÉ — ${fmt(current.t)}`;}S.passMessageUntil=Date.now()+1800;$('passBtn').classList.add('success');clearTimeout(S.passFlash);S.passFlash=setTimeout(()=>{$('passBtn').classList.remove('success');S.passMessage='';S.passMessageUntil=0;render();},1800);render();});
+ $('passBtn').addEventListener('click',()=>{if(!S.running||S.paused)return;let t=Date.now();S.passages.push(t);let armedPit=S.pits.find(p=>!p.done&&p.armed);if(armedPit){armedPit.done=true;armedPit.doneAt=t;armedPit.armed=false;}let count=S.passages.length;if(count===1){S.nextPassageMs=null;S.passMessage='✅ PREMIER PASSAGE ENREGISTRÉ';}else{let ls=laps(),current=ls[ls.length-1],ps=prediction();S.nextPassageMs=ps?t+ps.avg*1000:null;S.passMessage=`✅ TOUR ${current.n} ENREGISTRÉ — ${fmt(current.t)}`;}S.passMessageUntil=Date.now()+1800;$('passBtn').classList.add('success');clearTimeout(S.passFlash);S.passFlash=setTimeout(()=>{$('passBtn').classList.remove('success');S.passMessage='';S.passMessageUntil=0;render();},1800);render();});
  $('pauseBtn').addEventListener('click',()=>{S.paused=!S.paused;$('pauseBtn').textContent=S.paused?'REPRENDRE':'PAUSE';render();});
  $('finishBtn').addEventListener('click',()=>{if(!S.running)return;if(confirm('Êtes-vous sûr de vouloir terminer la session ?\n\nLe chronométrage sera arrêté.'))finish();});
  $('saveBtn').addEventListener('click',()=>{if(!pendingSession)return;saveHistory(pendingSession);pendingSession=null;$('saveBtn').disabled=true;$('saveBtn').textContent='✅ SESSION ENREGISTRÉE';});
