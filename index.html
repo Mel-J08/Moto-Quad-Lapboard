@@ -31,7 +31,7 @@ button,input{font:inherit}button{border:0;border-radius:14px;padding:14px 16px;f
 .racebg:before,.racebg:after{content:"";position:absolute;top:0;bottom:0;width:50%;z-index:-1;pointer-events:none}
 .racebg:before{left:0;background:linear-gradient(90deg,rgba(15,105,210,.20),transparent)}
 .racebg:after{right:0;background:linear-gradient(270deg,rgba(255,122,0,.22),transparent)}
-.vehicle-strip{display:flex;justify-content:space-between;align-items:center;padding:0 6px 7px;font-weight:950;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.vehicle-strip{display:none !important}
 .vehicle-strip .moto{color:#8fc7ff;text-shadow:0 1px 8px rgba(0,80,180,.5)}
 .vehicle-strip .quad{color:#ffbd63;text-shadow:0 1px 8px rgba(255,100,0,.5)}
 .hero2{background:rgba(16,18,23,.46);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 30px rgba(0,0,0,.18)}
@@ -103,7 +103,6 @@ button:active{transform:scale(.975);filter:brightness(1.08)}
 </section>
 
 <section id="race" class="screen racebg">
-<div class="vehicle-strip"><span class="moto">🏍️ MOTO N°64</span><span class="quad">🏁 QUAD N°93</span></div>
 
 <div class="card hero hero2">
 <div id="raceStatus" class="status green">🟢 SESSION EN COURS</div>
@@ -200,32 +199,43 @@ function showHistory(){currentHistoryFilter='training';document.querySelectorAll
 function removeHistory(id){let h=historyData();localStorage.setItem(HISTORY_KEY,JSON.stringify(h.filter(x=>String(x.id)!==String(id))));renderHistory();}
 let pop=null,popTimer=null;
 function closePop(){if(pop){pop.remove();pop=null;}clearTimeout(popTimer);}
-function attachLongPress(el,id,kind){let timer, sx,sy;el.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;timer=setTimeout(()=>{if(kind==='lap')showLapAction(el,id);else showHistoryAction(el,id);},650);});['pointerup','pointercancel','pointerleave'].forEach(ev=>el.addEventListener(ev,()=>clearTimeout(timer)));}
+function attachLongPress(el,id,kind){
+  let timer=null,sx=0,sy=0;
+  el.addEventListener('pointerdown',e=>{
+    sx=e.clientX;sy=e.clientY;
+    clearTimeout(timer);
+    timer=setTimeout(()=>{
+      if(kind==='lap')showLapAction(el,id);
+      else showHistoryAction(el,id);
+    },650);
+  });
+  el.addEventListener('pointermove',e=>{
+    if(Math.hypot(e.clientX-sx,e.clientY-sy)>12) clearTimeout(timer);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>el.addEventListener(ev,()=>clearTimeout(timer)));
+}
 function showLapAction(el,at){
  closePop();
  const selectedAt=Number(at);
- const lastAt=S.passages.length?S.passages[S.passages.length-1]:null;
+ const lastAt=S.passages.length?Number(S.passages[S.passages.length-1]):null;
  pop=document.createElement('button');
  pop.type='button';
  pop.className='context-pop';
- // Pour éviter toute erreur de recalcul sur un ancien passage, la correction
- // manuelle est volontairement limitée au dernier PASSAGE enregistré.
- if(selectedAt!==Number(lastAt)){
+ if(selectedAt!==lastAt){
    pop.textContent='ℹ️ Seul le dernier passage peut être corrigé';
    pop.setAttribute('aria-label','Seul le dernier passage peut être corrigé');
  }else{
    pop.textContent='↩️ Annuler le dernier passage';
    pop.setAttribute('aria-label','Annuler le dernier passage');
  }
- pop.style.left=Math.max(10,Math.min(window.innerWidth-245,el.getBoundingClientRect().left))+'px';
- pop.style.top=Math.max(10,el.getBoundingClientRect().top-55)+'px';
+ pop.style.left=Math.max(10,Math.min(window.innerWidth-260,el.getBoundingClientRect().left))+'px';
+ pop.style.top=Math.max(10,el.getBoundingClientRect().top-58)+'px';
  pop.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();},{passive:false});
- pop.addEventListener('pointerup',e=>{
+ pop.addEventListener('click',e=>{
    e.preventDefault();
    e.stopPropagation();
    if(selectedAt!==Number(S.passages[S.passages.length-1])){closePop();return;}
    S.passages.pop();
-   // Si le dernier passage avait validé un stand, on annule aussi cette validation.
    S.pits.forEach(p=>{
      if(Number(p.doneAt)===selectedAt){p.done=false;p.doneAt=null;p.armed=false;p.targetPassageMs=null;}
      else if(Number(p.targetPassageMs)===selectedAt){p.targetPassageMs=null;p.armed=false;}
@@ -238,7 +248,7 @@ function showLapAction(el,at){
    render();
  },{passive:false});
  document.body.appendChild(pop);
- popTimer=setTimeout(closePop,4000);
+ popTimer=setTimeout(closePop,5000);
 }
 function showHistoryAction(el,id){closePop();pop=document.createElement('button');pop.className='context-pop';pop.textContent='🗑️ Supprimer cette session';pop.style.left=Math.max(10,Math.min(window.innerWidth-230,el.getBoundingClientRect().left))+'px';pop.style.top=Math.max(10,el.getBoundingClientRect().top-55)+'px';pop.onclick=()=>{closePop();if(confirm('Supprimer cette session ?\n\nLes résultats seront définitivement supprimés.'))removeHistory(id);};document.body.appendChild(pop);popTimer=setTimeout(closePop,5000);}
 document.addEventListener('click',e=>{if(pop&&!e.target.closest('.context-pop'))closePop();});
@@ -251,7 +261,6 @@ document.addEventListener('DOMContentLoaded',()=>{
  $('saveBtn').addEventListener('click',()=>{if(!pendingSession)return;saveHistory(pendingSession);pendingSession=null;$('saveBtn').disabled=true;$('saveBtn').textContent='✅ SESSION ENREGISTRÉE';});
  $('discardBtn').addEventListener('click',()=>{pendingSession=null;show('setup');});
  $('againBtn').addEventListener('click',()=>{pendingSession=null;show('setup');});
- attachLongPress($('laps'),'laps','lap');
  const obs=new MutationObserver(()=>document.querySelectorAll('#laps .laprow').forEach(el=>{if(!el.dataset.lp){el.dataset.lp='1';attachLongPress(el,el.dataset.at,'lap');}}));obs.observe($('laps'),{childList:true});
  const hobs=new MutationObserver(()=>document.querySelectorAll('#historyList .history-item').forEach(el=>{if(!el.dataset.lp){el.dataset.lp='1';attachLongPress(el,el.dataset.id,'history');}}));hobs.observe($('historyList'),{childList:true});
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S.running&&!S.wakeLock)requestWakeLock();saveDraft();});
