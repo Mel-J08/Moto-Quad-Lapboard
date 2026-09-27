@@ -294,5 +294,15 @@ $('resumeBtn').addEventListener('click',resumeRecovered);
  window.addEventListener('beforeunload',saveDraft);
 });
 </script>
+<script>
+// Gestion automatique des mises à jour de l'application.
+// Les données de MES SESSIONS restent dans localStorage et ne sont jamais supprimées.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      .catch(() => {});
+  });
+}
+</script>
 </body>
 </html>
