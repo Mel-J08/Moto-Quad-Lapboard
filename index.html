@@ -72,6 +72,32 @@ button:active{transform:scale(.975);filter:brightness(1.08)}
 
 <link rel="apple-touch-icon" sizes="180x180" href="moto-quad-lapboard-icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
+
+<style id="heure-depart-final-fix">
+/* Alignement iPhone Safari : Heure de départ = Circuit */
+#start[type="time"]{
+  display:block !important;
+  width:100% !important;
+  height:47px !important;
+  min-height:47px !important;
+  max-height:47px !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:0 12px !important;
+  border:1px solid #2b2f38 !important;
+  border-radius:12px !important;
+  background:rgba(15,17,21,.72) !important;
+  color:#fff !important;
+  font:inherit !important;
+  line-height:47px !important;
+  -webkit-appearance:none !important;
+  appearance:none !important;
+}
+#start[type="time"]::-webkit-date-and-time-value{
+  text-align:left !important;
+  line-height:47px !important;
+}
+</style>
 </head>
 <body>
 <div class="wrap">
